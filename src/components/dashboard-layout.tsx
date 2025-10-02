@@ -1,32 +1,25 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   AlertTriangle,
-  Bell,
   Building,
-  Calendar,
   ClipboardList,
   Home,
-  LineChart,
   LogOut,
   MessageCircle,
   Package,
-  PanelLeft,
   Search,
-  Settings,
   ShoppingCart,
-  Star,
   Stethoscope,
-  Upload,
   User as UserIcon,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -47,9 +40,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Logo } from './logo';
 import { useToast } from '@/hooks/use-toast';
+import { SymptomCheckerSheet } from './patient/symptom-checker-sheet';
 
 interface NavItem {
   href: string;
@@ -59,6 +52,9 @@ interface NavItem {
 
 const patientNavItems: NavItem[] = [
   { href: '/patient', icon: Home, label: 'Dashboard' },
+  { href: '/patient/doctors', icon: Search, label: 'Find a Doctor' },
+  { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
+  { href: '/patient/orders', icon: ShoppingCart, label: 'Pharmacy Orders' },
 ];
 
 const doctorNavItems: NavItem[] = [
@@ -200,8 +196,9 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <main className="relative flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             {children}
+            {user.role === 'patient' && <SymptomCheckerSheet />}
         </main>
       </SidebarInset>
     </SidebarProvider>

@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, User } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const symptomSchema = z.object({
   symptomDescription: z.string().min(10, { message: 'Please describe your symptoms in at least 10 characters.' }),

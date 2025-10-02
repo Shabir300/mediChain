@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { pharmacyProducts, Product, Order } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, ShoppingCart, Minus, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,10 +16,10 @@ interface CartItem extends Product {
   quantity: number;
 }
 
-function Pharmacy() {
+export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Order[]>(initialOrders || []);
   const { toast } = useToast();
 
   const filteredProducts = pharmacyProducts.filter((product) =>
@@ -62,13 +62,22 @@ function Pharmacy() {
         total: cartTotal,
         status: 'pending'
     };
-    setOrders(prev => [...prev, newOrder]);
+    setOrders(prev => [newOrder, ...prev]);
     setCart([]);
     toast({
         title: 'Order Placed!',
         description: 'Your order has been sent to the pharmacy for approval.'
     })
   }
+  
+    const getStatusVariant = (status: Order['status']): "default" | "secondary" | "destructive" => {
+        switch(status) {
+            case 'approved': return 'default';
+            case 'pending': return 'secondary';
+            case 'declined': return 'destructive';
+            default: return 'secondary';
+        }
+    }
 
   return (
     <div className='grid lg:grid-cols-3 gap-8'>
@@ -147,62 +156,41 @@ function Pharmacy() {
                     )}
                 </CardContent>
             </Card>
-        </div>
-        {orders.length > 0 && (
-            <div className="lg:col-span-3 mt-8">
-                <MyOrders orders={orders} />
-            </div>
-        )}
-    </div>
-  );
-}
-
-
-export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
-    // In a real app, orders would come from a global state/db
-    const [orders, setOrders] = useState<Order[]>(initialOrders || []);
-
-    const getStatusVariant = (status: Order['status']): "default" | "secondary" | "destructive" => {
-        switch(status) {
-            case 'approved': return 'default';
-            case 'pending': return 'secondary';
-            case 'declined': return 'destructive';
-            default: return 'secondary';
-        }
-    }
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">My Pharmacy Orders</CardTitle>
-        <CardDescription>Track the status of your recent medicine orders.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {orders.length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't placed any orders yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <Card key={order.id}>
+            {orders.length > 0 && (
+                <Card className="mt-8">
                 <CardHeader>
-                    <div className='flex justify-between items-start'>
-                        <div>
-                            <CardTitle className='text-lg'>Order #{order.id.split('-')[1]}</CardTitle>
-                            <CardDescription>Total: ${order.total.toFixed(2)}</CardDescription>
-                        </div>
-                        <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
-                    </div>
+                    <CardTitle className="font-headline">My Order History</CardTitle>
+                    <CardDescription>Track the status of your recent medicine orders.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ul className='text-sm space-y-1 text-muted-foreground'>
-                        {order.items.map(item => <li key={item.productId}>{item.name} (x{item.quantity})</li>)}
-                    </ul>
+                    {orders.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">You haven't placed any orders yet.</p>
+                    ) : (
+                    <div className="space-y-4">
+                        {orders.map((order) => (
+                        <Card key={order.id}>
+                            <CardHeader>
+                                <div className='flex justify-between items-start'>
+                                    <div>
+                                        <CardTitle className='text-lg'>Order #{order.id.split('-')[1]}</CardTitle>
+                                        <CardDescription>Total: ${order.total.toFixed(2)}</CardDescription>
+                                    </div>
+                                    <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <ul className='text-sm space-y-1 text-muted-foreground'>
+                                    {order.items.map(item => <li key={item.productId}>{item.name} (x{item.quantity})</li>)}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                        ))}
+                    </div>
+                    )}
                 </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                </Card>
+            )}
+        </div>
+    </div>
   );
 }
