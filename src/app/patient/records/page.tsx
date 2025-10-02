@@ -1,3 +1,4 @@
+
 "use client";
 import { MedicalRecords } from "@/components/patient/medical-records";
 import { DashboardLayout } from "@/components/dashboard-layout";
