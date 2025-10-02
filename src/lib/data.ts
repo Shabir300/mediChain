@@ -69,16 +69,7 @@ export interface Appointment {
   cost: number;
 }
 
-export const appointments: Appointment[] = [
-    { id: 'apt-1', patientName: 'Alice Johnson', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-08-10', time: '10:00 AM', type: 'Urgent', status: 'booked', cost: 2500 },
-    { id: 'apt-2', patientName: 'Bob Williams', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-08-10', time: '11:30 AM', type: 'Normal', status: 'booked', cost: 1500 },
-    { id: 'apt-3', patientName: 'Charlie Brown', doctorId: '2', doctorName: 'Dr. Samuel Chen', date: '2024-07-20', time: '02:00 PM', type: 'Normal', status: 'completed', cost: 1200 },
-    { id: 'apt-4', patientName: 'Diana Prince', doctorId: '3', doctorName: 'Dr. Aisha Khan', date: '2024-08-12', time: '09:00 AM', type: 'Normal', status: 'booked', cost: 1800 },
-    { id: 'apt-5', patientName: 'Bruce Wayne', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-08-15', time: '03:00 PM', type: 'Urgent', status: 'booked', cost: 3000 },
-    { id: 'apt-6', patientName: 'Clark Kent', doctorId: '2', doctorName: 'Dr. Samuel Chen', date: '2024-08-15', time: '04:00 PM', type: 'Normal', status: 'booked', cost: 1500 },
-    { id: 'apt-7', patientName: 'Peter Parker', doctorId: '3', doctorName: 'Dr. Aisha Khan', date: '2024-09-02', time: '10:30 AM', type: 'Normal', status: 'booked', cost: 1800 },
-    { id: 'apt-8', patientName: 'Tony Stark', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-09-05', time: '01:00 PM', type: 'Urgent', status: 'booked', cost: 3200 },
-];
+export const appointments: Appointment[] = [];
 
 export interface Order {
     id: string;
