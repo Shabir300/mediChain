@@ -1,26 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { getMedicalSummary, MedicalSummaryOutput } from "@/ai/flows/generate-medical-summary";
 import { appointments, medicalRecords } from "@/lib/data";
 import { useMedicationStore } from "@/hooks/use-medication-store";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, HeartPulse, Pilcrow, Calendar } from "lucide-react";
+import { Loader2, Calendar, HeartPulse, Pilcrow, Download } from "lucide-react";
 import { Separator } from "../ui/separator";
+import { Button } from "../ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export function MedicalSummary() {
     const { medications } = useMedicationStore();
     const [summary, setSummary] = useState<MedicalSummaryOutput | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const summaryRef = useRef<HTMLDivElement>(null);
+    const { toast } = useToast();
     
     useEffect(() => {
         const generateSummary = async () => {
             setIsLoading(true);
             setError(null);
             
-            // Format all the data for the AI prompt
             const recordsText = medicalRecords.map(r => `${r.type} (${r.uploadDate}): ${r.fileName}`).join('\n');
             const appointmentsText = appointments.map(a => `${a.date} with ${a.doctorName} (${a.type})`).join('\n');
             const medicationsText = medications.map(m => `${m.name} at ${m.time}`).join('\n');
@@ -42,6 +48,34 @@ export function MedicalSummary() {
 
         generateSummary();
     }, [medications]);
+
+    const handleDownloadPdf = async () => {
+        if (!summaryRef.current) return;
+
+        setIsDownloading(true);
+        toast({ title: 'Generating PDF...', description: 'Please wait a moment.' });
+        
+        try {
+            const canvas = await html2canvas(summaryRef.current, { scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            pdf.save('medical-summary.pdf');
+
+            toast({ title: 'Download Complete!', description: 'Your medical summary PDF has been saved.' });
+        } catch (error) {
+            console.error("PDF Generation Error:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to generate PDF.' });
+        } finally {
+            setIsDownloading(false);
+        }
+    }
 
 
     if (isLoading) {
@@ -69,10 +103,18 @@ export function MedicalSummary() {
     }
     
     return (
-        <Card>
+        <Card ref={summaryRef}>
             <CardHeader>
-                <CardTitle className="font-headline">AI Medical Summary</CardTitle>
-                <CardDescription>A consolidated overview of your health records, appointments, and medications.</CardDescription>
+                 <div className="flex items-center justify-between">
+                    <div>
+                        <CardTitle className="font-headline">AI Medical Summary</CardTitle>
+                        <CardDescription>A consolidated overview of your health records, appointments, and medications.</CardDescription>
+                    </div>
+                    <Button onClick={handleDownloadPdf} disabled={isDownloading} size="sm">
+                        {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4"/>}
+                        Download PDF
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
