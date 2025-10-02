@@ -43,6 +43,8 @@ import {
 import { Logo } from './logo';
 import { useToast } from '@/hooks/use-toast';
 import { SymptomCheckerSheet } from './patient/symptom-checker-sheet';
+import { DoctorAiSheet } from './doctor/doctor-ai-sheet';
+import { PharmacyAiSheet } from './pharmacy/pharmacy-ai-sheet';
 
 interface NavItem {
   href: string;
@@ -59,6 +61,7 @@ const patientNavItems: NavItem[] = [
 
 const doctorNavItems: NavItem[] = [
   { href: '/doctor', icon: Home, label: 'Dashboard' },
+  { href: '/doctor/profile', icon: UserIcon, label: 'Profile' },
 ];
 
 const pharmacyNavItems: NavItem[] = [
@@ -129,6 +132,15 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
       }
   };
 
+  const renderAiChat = () => {
+    switch(user.role) {
+      case 'patient': return <SymptomCheckerSheet />;
+      case 'doctor': return <DoctorAiSheet />;
+      case 'pharmacy': return <PharmacyAiSheet />;
+      default: return null;
+    }
+  }
+
   return (
     <SidebarProvider>
       <Sidebar side="left" collapsible="icon">
@@ -195,7 +207,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
         </header>
         <main className="relative flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             {children}
-            {user.role === 'patient' && <SymptomCheckerSheet />}
+            {renderAiChat()}
         </main>
       </SidebarInset>
     </SidebarProvider>
