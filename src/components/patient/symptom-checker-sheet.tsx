@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -10,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, MessageCircle, User, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { medicalRecords } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 
 const symptomSchema = z.object({
   symptomDescription: z.string().min(2, { message: 'Please describe your symptoms.' }),
@@ -24,6 +25,7 @@ interface ChatMessage {
 }
 
 export function SymptomCheckerSheet() {
+  const { medicalRecords } = useDataStore();
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isOpen, setIsOpen] = useState(false);

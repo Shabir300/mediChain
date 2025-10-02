@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { File, Upload } from 'lucide-react';
-import { medicalRecords as initialMedicalRecords, MedicalRecord } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { Badge } from '@/components/ui/badge';
 
 const recordSchema = z.object({
@@ -24,23 +24,19 @@ type RecordFormValues = z.infer<typeof recordSchema>;
 
 export function MedicalRecords() {
     const { toast } = useToast();
-    const [uploadedFiles, setUploadedFiles] = useState<MedicalRecord[]>(initialMedicalRecords);
+    const { medicalRecords, addMedicalRecord } = useDataStore();
     
     const form = useForm<RecordFormValues>({
         resolver: zodResolver(recordSchema),
     });
 
     const onSubmit = (data: RecordFormValues) => {
-        // In a real app, this would upload to Firebase Storage.
-        // For the demo, we just add the filename to a list and show a toast.
         const fileName = data.file[0].name;
-        const newRecord: MedicalRecord = {
-            id: `rec-${Date.now()}`,
+        addMedicalRecord({
             fileName: fileName,
             uploadDate: new Date().toISOString().split('T')[0],
             type: 'Prescription' // Default type for demo
-        };
-        setUploadedFiles(prev => [newRecord, ...prev]);
+        });
         toast({
             title: 'File Uploaded',
             description: `${fileName} has been added to your medical records.`,
@@ -87,9 +83,9 @@ export function MedicalRecords() {
                     <CardTitle className="font-headline">Uploaded Files</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {uploadedFiles.length > 0 ? (
+                    {medicalRecords.length > 0 ? (
                         <ul className="space-y-2">
-                            {uploadedFiles.map((file) => (
+                            {medicalRecords.map((file) => (
                                 <li key={file.id} className="flex items-center justify-between text-sm p-3 bg-muted/50 rounded-md">
                                     <div className='flex items-center'>
                                         <File className="h-4 w-4 mr-3 text-muted-foreground" />

@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { pharmacyProducts, Product, Order, orders as initialOrdersData } from '@/lib/data';
+import { Product, Order } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -24,9 +26,9 @@ interface PatientStock extends Product {
 }
 
 export function MyOrders() {
+  const { pharmacyProducts, orders, addOrder } = useDataStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>(initialOrdersData);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [patientInventory, setPatientInventory] = useState<PatientStock[]>(() => [
     { ...pharmacyProducts[0], patientStock: 5 }, // Start with 5 Paracetamol
@@ -88,15 +90,12 @@ export function MyOrders() {
   
   const handleCheckout = () => {
     if(cart.length === 0) return;
-    const newOrder: Order = {
-        id: `ord-${Date.now()}`,
-        patientName: 'Demo Patient',
+    addOrder({
         items: cart.map(item => ({ productId: item.id, name: item.name, quantity: item.quantity })),
         total: cartTotal,
         status: 'pending',
         date: new Date().toISOString().split('T')[0]
-    };
-    setOrders(prev => [newOrder, ...prev]);
+    });
 
     // Add ordered items to patient inventory
     setPatientInventory(prevInventory => {

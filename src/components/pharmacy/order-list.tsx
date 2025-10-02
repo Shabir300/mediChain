@@ -1,37 +1,19 @@
+
 "use client";
 
-import { useState } from 'react';
-import { Order } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock initial orders
-const initialOrders: Order[] = [
-    {
-        id: 'ord-1694523600000',
-        patientName: 'Alice Johnson',
-        items: [
-            { productId: 'prod-1', name: 'Paracetamol 500mg', quantity: 2 },
-            { productId: 'prod-3', name: 'Ibuprofen 200mg', quantity: 1 }
-        ],
-        total: 260,
-        status: 'pending'
-    }
-];
-
 export function OrderList() {
-    const [orders, setOrders] = useState<Order[]>(initialOrders);
+    const { orders, updateOrderStatus } = useDataStore();
     const { toast } = useToast();
 
     const handleUpdateStatus = (orderId: string, status: 'approved' | 'declined') => {
-        setOrders(prevOrders =>
-            prevOrders.map(order =>
-                order.id === orderId ? { ...order, status } : order
-            )
-        );
+        updateOrderStatus(orderId, status);
         toast({
             title: `Order ${status}`,
             description: `Order #${orderId.slice(-5)} has been ${status}.`

@@ -1,6 +1,7 @@
+
 "use client";
 
-import { reviews, Review } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, StarHalf } from 'lucide-react';
 
@@ -18,6 +19,7 @@ const renderStars = (rating: number) => {
 };
 
 export function Reviews() {
+  const { reviews } = useDataStore();
   return (
     <Card>
       <CardHeader>

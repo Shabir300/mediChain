@@ -1,8 +1,10 @@
+
 "use client";
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { pharmacyProducts, Product } from '@/lib/data';
+import { Product } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Plus, Loader2 } from 'lucide-react';
@@ -25,7 +27,7 @@ const productSchema = z.object({
 type ProductFormValues = z.infer<typeof productSchema>;
 
 export function InventoryManagement() {
-    const [inventory, setInventory] = useState<Product[]>(pharmacyProducts);
+    const { pharmacyProducts, updateProductStock, addProduct } = useDataStore();
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { toast } = useToast();
@@ -38,8 +40,7 @@ export function InventoryManagement() {
     const getImage = (id: string) => PlaceHolderImages.find(img => img.id === id);
 
     const handleStockUpdate = async (product: Product, newStock: number) => {
-        const updatedInventory = inventory.map(p => p.id === product.id ? { ...p, stock: newStock } : p);
-        setInventory(updatedInventory);
+        updateProductStock(product.id, newStock);
 
         if (newStock < 5) {
             try {
@@ -63,15 +64,11 @@ export function InventoryManagement() {
     
     const handleAddProduct = (data: ProductFormValues) => {
         setIsSubmitting(true);
-        const newProduct: Product = {
-            id: `prod-${Date.now()}`,
+        addProduct({
             name: data.name,
             price: data.price,
             stock: data.stock,
-            image: 'medicine-1', // default image for new products
-            description: 'Newly added product'
-        };
-        setInventory(prev => [newProduct, ...prev]);
+        });
         toast({
             title: 'Product Added',
             description: `${data.name} has been added to inventory.`
@@ -124,7 +121,7 @@ export function InventoryManagement() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {inventory.map(product => {
+                        {pharmacyProducts.map(product => {
                              const image = getImage(product.image);
                              return(
                             <TableRow key={product.id}>

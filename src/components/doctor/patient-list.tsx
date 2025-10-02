@@ -2,7 +2,7 @@
 "use client";
 import { useState } from 'react';
 import Image from 'next/image';
-import { Patient, patients as mockPatients } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 export function PatientList() {
-    const [patients] = useState<Patient[]>(mockPatients);
+    const { patients } = useDataStore();
     const { toast } = useToast();
 
     const handleViewHistory = (patientName: string) => {

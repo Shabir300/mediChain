@@ -1,13 +1,15 @@
+
 "use client";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { EarningsChart } from "@/components/doctor/earnings-chart";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { appointments } from "@/lib/data";
+import { useDataStore } from "@/hooks/use-data-store";
 import { DollarSign, Stethoscope, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function DoctorEarningsPage() {
+    const { appointments } = useDataStore();
     const completedAppointments = appointments.filter(apt => apt.status === 'completed');
     const totalEarnings = completedAppointments.reduce((acc, apt) => acc + apt.cost, 0);
     const totalAppointments = completedAppointments.length;

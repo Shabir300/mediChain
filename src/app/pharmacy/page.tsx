@@ -1,3 +1,4 @@
+
 "use client";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { InventoryManagement } from "@/components/pharmacy/inventory-management";

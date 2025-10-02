@@ -1,6 +1,6 @@
 
 "use client";
-import { appointments, orders, medicalRecords as initialMedicalRecords } from "@/lib/data";
+import { useDataStore } from "@/hooks/use-data-store";
 import { useMedicationStore } from "@/hooks/use-medication-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +12,9 @@ import { MedicalSummary } from "@/components/patient/medical-summary";
 
 export default function PatientPage() {
     const { medications: currentMedications } = useMedicationStore();
+    const { appointments, orders, medicalRecords } = useDataStore();
     const recentAppointments = appointments.slice(0, 2);
-    const recentRecords = initialMedicalRecords.slice(0, 2);
+    const recentRecords = medicalRecords.slice(0, 2);
 
     const totalDoctorSpending = appointments.reduce((sum, apt) => sum + apt.cost, 0);
     const totalPharmacySpending = orders.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0);
@@ -61,7 +62,7 @@ export default function PatientPage() {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{initialMedicalRecords.length}</div>
+                        <div className="text-2xl font-bold">{medicalRecords.length}</div>
                         <p className="text-xs text-muted-foreground">Files uploaded</p>
                     </CardContent>
                 </Card>

@@ -5,13 +5,14 @@ import { AppointmentsCalendar } from "@/components/doctor/appointments-calendar"
 import { EarningsChart } from "@/components/doctor/earnings-chart";
 import { Reviews } from "@/components/doctor/reviews";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { appointments, patients, reviews } from "@/lib/data";
+import { useDataStore } from "@/hooks/use-data-store";
 import { DollarSign, Users, Star } from "lucide-react";
 
 export default function DoctorPage() {
+    const { appointments, patients, reviews } = useDataStore();
     const totalEarnings = appointments.reduce((acc, apt) => acc + apt.cost, 0);
     const totalPatients = patients.length;
-    const averageRating = reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
+    const averageRating = reviews.length > 0 ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length : 0;
 
     return (
         <DashboardLayout requiredRole="doctor">

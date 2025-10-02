@@ -2,13 +2,15 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { appointments, Appointment } from '@/lib/data';
+import { Appointment } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
 export function PatientAppointmentsCalendar() {
+    const { appointments } = useDataStore();
     const [date, setDate] = useState<Date | undefined>(new Date());
     
     // In a real app, you would fetch appointments for the logged-in patient.
@@ -23,7 +25,7 @@ export function PatientAppointmentsCalendar() {
             grouped[day].push(apt);
         });
         return grouped;
-    }, []);
+    }, [appointments]);
 
     const DayCell = ({ date }: { date: Date }) => {
         const dayStr = format(date, 'yyyy-MM-dd');
@@ -88,4 +90,3 @@ export function PatientAppointmentsCalendar() {
         </div>
     );
 }
-

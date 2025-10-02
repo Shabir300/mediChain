@@ -3,7 +3,8 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { doctors, Doctor, appointments, addAppointment } from '@/lib/data';
+import { Doctor } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +35,7 @@ const timeSlots = [
 ];
 
 export function DoctorSearch() {
+  const { doctors, appointments, addAppointment } = useDataStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -130,7 +132,7 @@ export function DoctorSearch() {
     return appointments
         .filter(apt => apt.doctorId === selectedDoctor.id && format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
         .map(apt => apt.time);
-  }, [selectedDoctor, selectedDate]);
+  }, [selectedDoctor, selectedDate, appointments]);
 
   const handleCloseDialog = () => {
     setSelectedDoctor(null);

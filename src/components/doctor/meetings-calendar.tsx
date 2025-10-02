@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
-import { appointments, Appointment } from '@/lib/data';
+import { Appointment } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +13,7 @@ import { format } from 'date-fns';
 type View = 'all' | 'urgent' | 'normal';
 
 export function MeetingsCalendar() {
+    const { appointments } = useDataStore();
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [view, setView] = useState<View>('all');
 
@@ -19,7 +22,7 @@ export function MeetingsCalendar() {
             if (view === 'all') return true;
             return apt.type.toLowerCase() === view;
         });
-    }, [view]);
+    }, [view, appointments]);
     
     const appointmentsByDate = useMemo(() => {
         const grouped: { [key: string]: Appointment[] } = {};

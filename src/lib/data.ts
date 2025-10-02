@@ -1,4 +1,5 @@
 
+
 export interface Doctor {
   id: string;
   name: string;
@@ -116,13 +117,10 @@ export const medicalRecords: MedicalRecord[] = [
     { id: 'rec-2', fileName: 'chest_xray.pdf', uploadDate: '2024-06-22', type: 'Imaging' },
 ];
 
+// Functions below are now deprecated in favor of useDataStore actions
+// They are kept for reference during refactoring but should not be used in new code.
+
 export const addAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 'patientName'>) => {
-    const newAppointment: Appointment = {
-        ...appointment,
-        id: `apt-${Date.now()}`,
-        patientName: 'Demo Patient', // In a real app, this would be the logged-in user's name
-        status: 'booked',
-    };
-    appointments.push(newAppointment);
-    return newAppointment;
+    console.warn("`addAppointment` from `data.ts` is deprecated. Use `useDataStore` hook instead.");
+    return null;
 };

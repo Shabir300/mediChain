@@ -1,13 +1,14 @@
 
 "use client";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { appointments, orders } from "@/lib/data";
+import { useDataStore } from "@/hooks/use-data-store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, ShoppingCart, Stethoscope } from "lucide-react";
 
 export default function BudgetPage() {
+    const { appointments, orders } = useDataStore();
     const totalDoctorSpending = appointments.reduce((sum, apt) => sum + apt.cost, 0);
     const totalPharmacySpending = orders.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0);
     const totalSpending = totalDoctorSpending + totalPharmacySpending;

@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useEffect, useState, useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { getMedicalSummary, MedicalSummaryOutput } from "@/ai/flows/generate-medical-summary";
-import { appointments, medicalRecords } from "@/lib/data";
+import { useDataStore } from "@/hooks/use-data-store";
 import { useMedicationStore } from "@/hooks/use-medication-store";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export function MedicalSummary() {
     const { medications } = useMedicationStore();
+    const { appointments, medicalRecords } = useDataStore();
     const [summary, setSummary] = useState<MedicalSummaryOutput | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -47,7 +49,7 @@ export function MedicalSummary() {
         };
 
         generateSummary();
-    }, [medications]);
+    }, [medications, appointments, medicalRecords]);
 
     const handleDownloadPdf = async () => {
         if (!summaryRef.current) return;

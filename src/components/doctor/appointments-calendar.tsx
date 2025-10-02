@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useState } from 'react';
-import { appointments, Appointment } from '@/lib/data';
+import { Appointment } from '@/lib/data';
+import { useDataStore } from '@/hooks/use-data-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
@@ -9,8 +11,7 @@ import { Video, Bot } from 'lucide-react';
 import { PatientSummaryModal } from './patient-summary-modal';
 
 export function AppointmentsCalendar() {
-    // For the demo, we use static data.
-    const [appointmentList] = useState<Appointment[]>(appointments);
+    const { appointments } = useDataStore();
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
     const handleStartMeeting = () => {
@@ -26,7 +27,7 @@ export function AppointmentsCalendar() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {appointmentList.map(apt => (
+                        {appointments.map(apt => (
                             <Card key={apt.id}>
                                 <CardContent className="p-4 flex items-center justify-between">
                                     <div className='flex items-center gap-4'>
