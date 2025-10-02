@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -6,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   AlertTriangle,
   Building,
+  Calendar,
   ClipboardList,
   Home,
   LogOut,
@@ -64,6 +66,7 @@ const patientNavItems: NavItem[] = [
 
 const doctorNavItems: NavItem[] = [
   { href: '/doctor', icon: Home, label: 'Dashboard' },
+  { href: '/doctor/meetings', icon: Calendar, label: 'Meetings' },
   { href: '/doctor/patients', icon: Users, label: 'Patients' },
   { href: '/doctor/earnings', icon: LineChart, label: 'Earnings' },
   { href: '/doctor/reviews', icon: Star, label: 'Reviews' },
