@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "doctor-1",
+      "description": "Portrait of Dr. Evelyn Reed",
+      "imageUrl": "https://images.unsplash.com/photo-1642541724244-83d49288a86b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxkb2N0b3IlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTkzMzA0OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor portrait"
+    },
+    {
+      "id": "doctor-2",
+      "description": "Portrait of Dr. Samuel Chen",
+      "imageUrl": "https://images.unsplash.com/photo-1758127139306-8f35edd4c4f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxkb2N0b3IlMjBzbWlsaW5nfGVufDB8fHx8MTc1OTM4MzAwOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "doctor smiling"
+    },
+    {
+      "id": "doctor-3",
+      "description": "Portrait of Dr. Aisha Khan",
+      "imageUrl": "https://images.unsplash.com/photo-1638202993928-7267aad84c31?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHx3b21hbiUyMGRvY3RvcnxlbnwwfHx8fDE3NTkzNTMzOTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman doctor"
+    },
+    {
+      "id": "medicine-1",
+      "description": "Bottle of Paracetamol 500mg tablets",
+      "imageUrl": "https://images.unsplash.com/photo-1632024956972-90f6f1ab7807?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwaWxscyUyMGJvdHRsZXxlbnwwfHx8fDE3NTkzMjUyODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pills bottle"
+    },
+    {
+      "id": "medicine-2",
+      "description": "Amoxicillin 250mg syrup",
+      "imageUrl": "https://images.unsplash.com/photo-1700104494895-9a4916ea77e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzeXJ1cCUyMG1lZGljaW5lfGVufDB8fHx8MTc1OTQwMjg1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "syrup medicine"
+    },
+    {
+      "id": "medicine-3",
+      "description": "Ibuprofen 200mg capsules",
+      "imageUrl": "https://images.unsplash.com/photo-1586795826711-d5405e718900?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYXBzdWxlcyUyMGJsaXN0ZXJ8ZW58MHx8fHwxNzU5NDEwNzgwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "capsules blister"
+    },
+    {
+      "id": "medicine-4",
+      "description": "Vitamin C 1000mg tablets",
+      "imageUrl": "https://images.unsplash.com/photo-1624362772755-4d5843e67047?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHx2aXRhbWluJTIwdGFibGV0c3xlbnwwfHx8fDE3NTk0MTA3ODB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vitamin tablets"
+    }
+  ]
 }

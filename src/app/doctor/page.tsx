@@ -1,0 +1,33 @@
+"use client";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { AppointmentsCalendar } from "@/components/doctor/appointments-calendar";
+import { EarningsChart } from "@/components/doctor/earnings-chart";
+import { Reviews } from "@/components/doctor/reviews";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar, LineChart, Star } from "lucide-react";
+
+export default function DoctorPage() {
+    return (
+        <DashboardLayout requiredRole="doctor">
+            <div className="flex items-center justify-between space-y-2">
+                <h1 className="font-headline text-3xl md:text-4xl">Doctor Dashboard</h1>
+            </div>
+            <Tabs defaultValue="appointments" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="appointments"><Calendar className="mr-2 h-4 w-4" /> Appointments</TabsTrigger>
+                    <TabsTrigger value="earnings"><LineChart className="mr-2 h-4 w-4" /> Earnings</TabsTrigger>
+                    <TabsTrigger value="reviews"><Star className="mr-2 h-4 w-4" /> Reviews</TabsTrigger>
+                </TabsList>
+                <TabsContent value="appointments">
+                    <AppointmentsCalendar />
+                </TabsContent>
+                <TabsContent value="earnings">
+                    <EarningsChart />
+                </TabsContent>
+                <TabsContent value="reviews">
+                    <Reviews />
+                </TabsContent>
+            </Tabs>
+        </DashboardLayout>
+    );
+}

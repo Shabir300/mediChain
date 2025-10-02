@@ -1,89 +1,58 @@
 "use client";
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth, User } from '@/context/auth-context';
+import { useAuth, Role } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
 
-const loginSchema = z.object({
+const signupSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  role: z.enum(['patient', 'doctor', 'pharmacy'], {
+    required_error: 'You need to select a role.',
+  }),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { signup } = useAuth();
   const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (user && isClient) {
-      switch (user.role) {
-        case 'patient':
-          router.push('/patient');
-          break;
-        case 'doctor':
-          router.push('/doctor');
-          break;
-        case 'pharmacy':
-          router.push('/pharmacy');
-          break;
-        default:
-          router.push('/');
-      }
-    }
-  }, [user, router, isClient]);
-
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
     defaultValues: {
       email: '',
       password: '',
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    const loggedInUser = login(data.email, data.password);
-    if (loggedInUser) {
+  const onSubmit = (data: SignupFormValues) => {
+    const newUser = signup(data.email, data.password, data.role as Role);
+    if (newUser) {
       toast({
-        title: 'Login Successful',
-        description: `Welcome back, ${loggedInUser.email}!`,
+        title: 'Signup Successful',
+        description: 'Your account has been created. Please log in.',
       });
-      // The useEffect will handle redirection
+      router.push('/');
     } else {
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Invalid email or password.',
+        title: 'Signup Failed',
+        description: 'An account with this email already exists.',
       });
     }
   };
-
-  if (!isClient || user) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4">
-                <Logo />
-                <p className="text-muted-foreground">Loading...</p>
-            </div>
-        </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -92,8 +61,8 @@ export default function LoginPage() {
           <div className="mx-auto mb-4">
             <Logo />
           </div>
-          <CardTitle className="font-headline text-3xl">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardTitle className="font-headline text-3xl">Create an Account</CardTitle>
+          <CardDescription>Join MediChain to manage your healthcare journey</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -124,15 +93,37 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>I am a...</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="patient">Patient</SelectItem>
+                        <SelectItem value="doctor">Doctor</SelectItem>
+                        <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
-                Login
+                Create Account
               </Button>
             </form>
           </Form>
           <div className="mt-6 text-center text-sm">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-semibold text-accent-foreground underline">
-              Sign up
+            Already have an account?{' '}
+            <Link href="/" className="font-semibold text-accent-foreground underline">
+              Login
             </Link>
           </div>
         </CardContent>
