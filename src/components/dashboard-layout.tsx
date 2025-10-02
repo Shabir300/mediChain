@@ -9,10 +9,12 @@ import {
   ClipboardList,
   Home,
   LogOut,
+  LineChart,
   MessageCircle,
   Package,
   Search,
   ShoppingCart,
+  Star,
   Stethoscope,
   User as UserIcon,
   Users,
@@ -63,6 +65,8 @@ const patientNavItems: NavItem[] = [
 const doctorNavItems: NavItem[] = [
   { href: '/doctor', icon: Home, label: 'Dashboard' },
   { href: '/doctor/patients', icon: Users, label: 'Patients' },
+  { href: '/doctor/earnings', icon: LineChart, label: 'Earnings' },
+  { href: '/doctor/reviews', icon: Star, label: 'Reviews' },
   { href: '/doctor/profile', icon: UserIcon, label: 'Profile' },
 ];
 
