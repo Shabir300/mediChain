@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-
+import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -69,146 +69,149 @@ export default function ProfileForm() {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your name" {...field} />
-              </FormControl>
-              <FormDescription>
-                This is the name that will be displayed on your profile.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="specialities"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Specialities</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Tell us a little bit about your specialities"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                You can mention your specialities, experience and other details.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="clinicName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Clinic Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Your clinic name" {...field} />
-              </FormControl>
-              <FormDescription>
-                This is the name of your clinic.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Address</FormLabel>
-              <FormControl>
-                <Input placeholder="Your address" {...field} />
-              </FormControl>
-              <FormDescription>
-                This is your clinic address.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="education"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Education</FormLabel>
-              <FormControl>
-                <Input placeholder="Your education" {...field} />
-              </FormControl>
-              <FormDescription>
-                Your educational qualifications.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="city"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>City</FormLabel>
-              <FormControl>
-                <Input placeholder="Your city" {...field} />
-              </FormControl>
-              <FormDescription>
-                The city where your clinic is located.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="country"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Country</FormLabel>
-              <FormControl>
-                <Input placeholder="Your country" {...field} />
-              </FormControl>
-              <FormDescription>
-                The country where your clinic is located.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="previousExperience"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Previous Experience</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Tell us a little bit about your previous experience"
-                  className="resize-none"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                You can mention your previous work experience.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Update profile</Button>
-      </form>
-    </Form>
+    <DashboardLayout requiredRole="doctor">
+        <h1 className="font-headline text-3xl md:text-4xl">Edit Profile</h1>
+        <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-4">
+            <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your name" {...field} />
+                </FormControl>
+                <FormDescription>
+                    This is the name that will be displayed on your profile.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="specialities"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Specialities</FormLabel>
+                <FormControl>
+                    <Textarea
+                    placeholder="Tell us a little bit about your specialities"
+                    className="resize-none"
+                    {...field}
+                    />
+                </FormControl>
+                <FormDescription>
+                    You can mention your specialities, experience and other details.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="clinicName"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Clinic Name</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your clinic name" {...field} />
+                </FormControl>
+                <FormDescription>
+                    This is the name of your clinic.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="address"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Address</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your address" {...field} />
+                </FormControl>
+                <FormDescription>
+                    This is your clinic address.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="education"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Education</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your education" {...field} />
+                </FormControl>
+                <FormDescription>
+                    Your educational qualifications.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>City</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your city" {...field} />
+                </FormControl>
+                <FormDescription>
+                    The city where your clinic is located.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Country</FormLabel>
+                <FormControl>
+                    <Input placeholder="Your country" {...field} />
+                </FormControl>
+                <FormDescription>
+                    The country where your clinic is located.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="previousExperience"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Previous Experience</FormLabel>
+                <FormControl>
+                    <Textarea
+                    placeholder="Tell us a little bit about your previous experience"
+                    className="resize-none"
+                    {...field}
+                    />
+                </FormControl>
+                <FormDescription>
+                    You can mention your previous work experience.
+                </FormDescription>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <Button type="submit">Update profile</Button>
+        </form>
+        </Form>
+    </DashboardLayout>
   )
 }
