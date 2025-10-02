@@ -63,6 +63,7 @@ interface NavItem {
 
 const patientNavItems: NavItem[] = [
   { href: '/patient', icon: Home, label: 'Dashboard' },
+  { href: '/patient/appointments', icon: Calendar, label: 'Appointments' },
   { href: '/patient/doctors', icon: Search, label: 'Find a Doctor' },
   { href: '/patient/hospitals', icon: Hospital, label: 'Hospitals' },
   { href: '/patient/medication', icon: Pill, label: 'Medication' },
@@ -103,11 +104,11 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   };
   
   const handleSOS = () => {
-      toast({
+      const { id } = toast({
           variant: 'destructive',
           title: 'SOS Signal Sent',
           description: 'Emergency request sent to nearby hospital.',
-          action: <ToastAction altText="Dismiss" onClick={() => dismiss()}>Dismiss</ToastAction>,
+          action: <ToastAction altText="Dismiss" onClick={() => dismiss(id)}>Dismiss</ToastAction>,
       });
   };
 
