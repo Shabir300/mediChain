@@ -113,7 +113,7 @@ export function SymptomCheckerSheet() {
             name="symptomDescription"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Your Symptoms</FormLabel>
+                <FormLabel>Describe Your Symptoms Below</FormLabel>
                 <FormControl>
                     <Textarea
                     placeholder="e.g., I have a high fever, a sore throat, and a headache."
