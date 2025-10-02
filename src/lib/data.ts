@@ -1,3 +1,4 @@
+
 export interface Doctor {
   id: string;
   name: string;
@@ -123,3 +124,14 @@ export const medicalRecords: MedicalRecord[] = [
     { id: 'rec-1', fileName: 'blood_test_results.pdf', uploadDate: '2024-07-10', type: 'Lab Report' },
     { id: 'rec-2', fileName: 'chest_xray.pdf', uploadDate: '2024-06-22', type: 'Imaging' },
 ];
+
+export const addAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 'patientName'>) => {
+    const newAppointment: Appointment = {
+        ...appointment,
+        id: `apt-${Date.now()}`,
+        patientName: 'Demo Patient', // In a real app, this would be the logged-in user's name
+        status: 'booked',
+    };
+    appointments.push(newAppointment);
+    return newAppointment;
+};

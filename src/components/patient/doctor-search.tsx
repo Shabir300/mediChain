@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { doctors, Doctor, appointments } from '@/lib/data';
+import { doctors, Doctor, appointments, addAppointment } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,8 +21,17 @@ import {
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Calendar } from '../ui/calendar';
+import { format } from 'date-fns';
 
 type FilterType = 'all' | 'nearby' | 'in-city';
+
+// Mock time slots for a day
+const timeSlots = [
+    "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+    "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM", "03:00 PM", "03:30 PM",
+    "04:00 PM", "04:30 PM"
+];
 
 export function DoctorSearch() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,6 +39,9 @@ export function DoctorSearch() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isUrgent, setIsUrgent] = useState(false);
   const [timeFilter, setTimeFilter] = useState('');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+
   const { toast } = useToast();
 
   const convertTo24Hour = (time12h: string) => {
@@ -83,14 +96,46 @@ export function DoctorSearch() {
   }
 
   const handleBookAppointment = () => {
-    if (!selectedDoctor) return;
-    // In a real app, this would save to a database.
-    // For the demo, we just show a toast.
+    if (!selectedDoctor || !selectedDate || !selectedTime) {
+         toast({
+            variant: 'destructive',
+            title: 'Booking Failed',
+            description: 'Please select a date and time.',
+        });
+        return;
+    }
+    
+    addAppointment({
+        doctorName: selectedDoctor.name,
+        doctorId: selectedDoctor.id,
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        time: selectedTime,
+        type: isUrgent ? 'Urgent' : 'Normal',
+        cost: isUrgent ? 3000 : 1500, // Example cost
+    });
+    
     toast({
         title: 'Appointment Booked!',
-        description: `Your ${isUrgent ? 'urgent' : 'normal'} appointment with ${selectedDoctor.name} has been confirmed.`,
+        description: `Your ${isUrgent ? 'urgent' : 'normal'} appointment with ${selectedDoctor.name} on ${format(selectedDate, 'PPP')} at ${selectedTime} has been confirmed.`,
     });
+
     setSelectedDoctor(null);
+    setIsUrgent(false);
+    setSelectedDate(new Date());
+    setSelectedTime(null);
+  }
+
+  const bookedSlotsForDay = useMemo(() => {
+    if (!selectedDoctor || !selectedDate) return [];
+    return appointments
+        .filter(apt => apt.doctorId === selectedDoctor.id && format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
+        .map(apt => apt.time);
+  }, [selectedDoctor, selectedDate]);
+
+  const handleCloseDialog = () => {
+    setSelectedDoctor(null);
+    setSelectedDate(new Date());
+    setSelectedTime(null);
     setIsUrgent(false);
   }
 
@@ -178,25 +223,52 @@ export function DoctorSearch() {
         </CardContent>
       </Card>
       
-      <Dialog open={!!selectedDoctor} onOpenChange={() => setSelectedDoctor(null)}>
-        <DialogContent>
+      <Dialog open={!!selectedDoctor} onOpenChange={handleCloseDialog}>
+        <DialogContent className="max-w-4xl">
             <DialogHeader>
                 <DialogTitle className='font-headline'>Book Appointment with {selectedDoctor?.name}</DialogTitle>
                 <DialogDescription>
-                    Select appointment type. For the demo, we'll assume the next available slot.
+                    Select a date and an available time slot.
                 </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-                <div className="flex items-center space-x-2">
-                    <Switch id="urgent-toggle" checked={isUrgent} onCheckedChange={setIsUrgent} />
-                    <Label htmlFor="urgent-toggle" className={isUrgent ? 'font-bold text-destructive' : ''}>
-                        {isUrgent ? 'Urgent Appointment' : 'Normal Appointment'}
-                    </Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                <div>
+                     <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() - 1))}
+                        className="rounded-md border"
+                    />
+                     <div className="flex items-center space-x-2 mt-4">
+                        <Switch id="urgent-toggle" checked={isUrgent} onCheckedChange={setIsUrgent} />
+                        <Label htmlFor="urgent-toggle" className={isUrgent ? 'font-bold text-destructive' : ''}>
+                            Mark as Urgent
+                        </Label>
+                    </div>
+                </div>
+                <div>
+                    <h4 className="font-semibold mb-2">Available Slots for {selectedDate ? format(selectedDate, 'PPP') : '...'}</h4>
+                    <div className="grid grid-cols-3 gap-2 max-h-80 overflow-y-auto pr-2">
+                        {timeSlots.map(slot => {
+                            const isBooked = bookedSlotsForDay.includes(slot);
+                            return (
+                                <Button 
+                                    key={slot} 
+                                    variant={selectedTime === slot ? 'default' : 'outline'}
+                                    disabled={isBooked}
+                                    onClick={() => setSelectedTime(slot)}
+                                >
+                                    {slot}
+                                </Button>
+                            )
+                        })}
+                    </div>
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setSelectedDoctor(null)}>Cancel</Button>
-                <Button onClick={handleBookAppointment}>Confirm Booking</Button>
+                <Button variant="outline" onClick={handleCloseDialog}>Cancel</Button>
+                <Button onClick={handleBookAppointment} disabled={!selectedTime}>Confirm Booking</Button>
             </DialogFooter>
         </DialogContent>
       </Dialog>
