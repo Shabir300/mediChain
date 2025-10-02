@@ -99,7 +99,7 @@ export function InventoryManagement() {
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(handleAddProduct)} className="space-y-4">
                                <FormField control={form.control} name="name" render={({field}) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)}/>
-                               <FormField control={form.control} name="price" render={({field}) => (<FormItem><FormLabel>Price ($)</FormLabel><FormControl><Input type="number" step="0.01" {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                               <FormField control={form.control} name="price" render={({field}) => (<FormItem><FormLabel>Price (PKR)</FormLabel><FormControl><Input type="number" step="0.01" {...field}/></FormControl><FormMessage/></FormItem>)}/>
                                <FormField control={form.control} name="stock" render={({field}) => (<FormItem><FormLabel>Initial Stock</FormLabel><FormControl><Input type="number" {...field}/></FormControl><FormMessage/></FormItem>)}/>
                                <DialogFooter>
                                     <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
@@ -134,7 +134,7 @@ export function InventoryManagement() {
                                         <span>{product.name}</span>
                                     </div>
                                 </TableCell>
-                                <TableCell>${product.price.toFixed(2)}</TableCell>
+                                <TableCell>PKR {product.price.toFixed(2)}</TableCell>
                                 <TableCell>
                                     <Input 
                                         type="number" 

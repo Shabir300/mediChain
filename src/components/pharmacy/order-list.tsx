@@ -17,7 +17,7 @@ const initialOrders: Order[] = [
             { productId: 'prod-1', name: 'Paracetamol 500mg', quantity: 2 },
             { productId: 'prod-3', name: 'Ibuprofen 200mg', quantity: 1 }
         ],
-        total: 20.23,
+        total: 260,
         status: 'pending'
     }
 ];
@@ -60,7 +60,7 @@ export function OrderList() {
                                             <p className='text-sm text-muted-foreground'>{order.patientName}</p>
                                         </div>
                                         <div className='flex items-center gap-4'>
-                                            <span className='font-bold'>${order.total.toFixed(2)}</span>
+                                            <span className='font-bold'>PKR {order.total.toFixed(2)}</span>
                                             <Badge>{order.items.length} items</Badge>
                                         </div>
                                     </div>

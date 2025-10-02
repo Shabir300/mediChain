@@ -11,6 +11,7 @@ import { Search, ShoppingCart, Minus, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
 
 interface CartItem extends Product {
   quantity: number;
@@ -20,6 +21,7 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>(initialOrders || []);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const { toast } = useToast();
 
   const filteredProducts = pharmacyProducts.filter((product) =>
@@ -52,6 +54,7 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
   }
   
   const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
   
   const handleCheckout = () => {
     if(cart.length === 0) return;
@@ -64,6 +67,7 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
     };
     setOrders(prev => [newOrder, ...prev]);
     setCart([]);
+    setIsCartOpen(false);
     toast({
         title: 'Order Placed!',
         description: 'Your order has been sent to the pharmacy for approval.'
@@ -80,12 +84,21 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
     }
 
   return (
-    <div className='grid lg:grid-cols-3 gap-8'>
-        <div className='lg:col-span-2'>
+    <div className='space-y-8'>
+        <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
             <Card>
-                <CardHeader>
-                <CardTitle className="font-headline">Order Medicine</CardTitle>
-                <CardDescription>Search for medicine and add to your cart.</CardDescription>
+                 <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="font-headline">Order Medicine</CardTitle>
+                        <CardDescription>Search for medicine and add to your cart.</CardDescription>
+                    </div>
+                     <SheetTrigger asChild>
+                        <Button variant="outline">
+                            <ShoppingCart className="mr-2 h-4 w-4" />
+                            View Cart
+                            {cartItemCount > 0 && <Badge className="ml-2">{cartItemCount}</Badge>}
+                        </Button>
+                    </SheetTrigger>
                 </CardHeader>
                 <CardContent>
                 <div className="relative mb-6">
@@ -97,7 +110,7 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredProducts.map((product) => {
                         const image = getImage(product.image);
                         return (
@@ -108,7 +121,7 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
                                 <CardContent className="p-4 flex-grow">
                                     <h3 className="font-bold">{product.name}</h3>
                                     <p className="text-sm text-muted-foreground">{product.description}</p>
-                                    <p className="font-bold mt-2">${product.price.toFixed(2)}</p>
+                                    <p className="font-bold mt-2">PKR {product.price.toFixed(2)}</p>
                                 </CardContent>
                                 <CardFooter className="p-4">
                                     <Button className="w-full" onClick={() => addToCart(product)} disabled={product.stock === 0}>
@@ -121,22 +134,23 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
                 </div>
                 </CardContent>
             </Card>
-        </div>
-        <div>
-            <Card className="sticky top-20">
-                <CardHeader>
-                    <CardTitle className="font-headline flex items-center"><ShoppingCart className="mr-2 h-6 w-6"/> Your Cart</CardTitle>
-                </CardHeader>
-                <CardContent>
+
+             <SheetContent className="flex flex-col">
+                <SheetHeader>
+                    <SheetTitle className="font-headline flex items-center"><ShoppingCart className="mr-2 h-6 w-6"/> Your Cart</SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto pr-4 -mr-6">
                     {cart.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">Your cart is empty.</p>
+                        <div className="flex h-full items-center justify-center">
+                            <p className="text-muted-foreground text-sm">Your cart is empty.</p>
+                        </div>
                     ) : (
                         <div className="space-y-4">
                             {cart.map(item => (
                                 <div key={item.id} className="flex justify-between items-center">
                                     <div>
                                         <p className="font-medium">{item.name}</p>
-                                        <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                                        <p className="text-sm text-muted-foreground">PKR {item.price.toFixed(2)}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Button size="icon" variant="ghost" className='h-6 w-6' onClick={() => updateQuantity(item.id, -1)}><Minus className='h-4 w-4'/></Button>
@@ -146,51 +160,56 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
                                     </div>
                                 </div>
                             ))}
-                             <Separator />
-                            <div className='flex justify-between font-bold text-lg'>
-                                <span>Total</span>
-                                <span>${cartTotal.toFixed(2)}</span>
-                            </div>
-                            <Button className="w-full" onClick={handleCheckout}>Checkout</Button>
                         </div>
                     )}
-                </CardContent>
-            </Card>
-            {orders.length > 0 && (
-                <Card className="mt-8">
-                <CardHeader>
-                    <CardTitle className="font-headline">My Order History</CardTitle>
-                    <CardDescription>Track the status of your recent medicine orders.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {orders.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">You haven't placed any orders yet.</p>
-                    ) : (
-                    <div className="space-y-4">
-                        {orders.map((order) => (
-                        <Card key={order.id}>
-                            <CardHeader>
-                                <div className='flex justify-between items-start'>
-                                    <div>
-                                        <CardTitle className='text-lg'>Order #{order.id.split('-')[1]}</CardTitle>
-                                        <CardDescription>Total: ${order.total.toFixed(2)}</CardDescription>
-                                    </div>
-                                    <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <ul className='text-sm space-y-1 text-muted-foreground'>
-                                    {order.items.map(item => <li key={item.productId}>{item.name} (x{item.quantity})</li>)}
-                                </ul>
-                            </CardContent>
-                        </Card>
-                        ))}
+                </div>
+                {cart.length > 0 && (
+                    <div className="border-t pt-4">
+                        <Separator className="mb-4" />
+                        <div className='flex justify-between font-bold text-lg'>
+                            <span>Total</span>
+                            <span>PKR {cartTotal.toFixed(2)}</span>
+                        </div>
+                        <Button className="w-full mt-4" onClick={handleCheckout}>Checkout</Button>
                     </div>
-                    )}
-                </CardContent>
-                </Card>
-            )}
-        </div>
+                )}
+            </SheetContent>
+        </Sheet>
+       
+        {orders.length > 0 && (
+            <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">My Order History</CardTitle>
+                <CardDescription>Track the status of your recent medicine orders.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {orders.length === 0 ? (
+                <p className="text-sm text-muted-foreground">You haven't placed any orders yet.</p>
+                ) : (
+                <div className="space-y-4">
+                    {orders.map((order) => (
+                    <Card key={order.id}>
+                        <CardHeader>
+                            <div className='flex justify-between items-start'>
+                                <div>
+                                    <CardTitle className='text-lg'>Order #{order.id.split('-')[1]}</CardTitle>
+                                    <CardDescription>Total: PKR {order.total.toFixed(2)}</CardDescription>
+                                </div>
+                                <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className='text-sm space-y-1 text-muted-foreground'>
+                                {order.items.map(item => <li key={item.productId}>{item.name} (x{item.quantity})</li>)}
+                            </ul>
+                        </CardContent>
+                    </Card>
+                    ))}
+                </div>
+                )}
+            </CardContent>
+            </Card>
+        )}
     </div>
   );
 }

@@ -21,10 +21,10 @@ export interface Product {
 }
 
 export const pharmacyProducts: Product[] = [
-  { id: 'prod-1', name: 'Paracetamol 500mg', price: 5.99, stock: 50, image: 'medicine-1', description: "Effective relief from pain and fever." },
-  { id: 'prod-2', name: 'Amoxicillin 250mg Syrup', price: 12.50, stock: 25, image: 'medicine-2', description: "Antibiotic for bacterial infections." },
-  { id: 'prod-3', name: 'Ibuprofen 200mg', price: 8.25, stock: 4, image: 'medicine-3', description: "Reduces inflammation and pain." },
-  { id: 'prod-4', name: 'Vitamin C 1000mg', price: 15.00, stock: 100, image: 'medicine-4', description: "Supports the immune system." },
+  { id: 'prod-1', name: 'Paracetamol 500mg', price: 70, stock: 50, image: 'medicine-1', description: "Effective relief from pain and fever." },
+  { id: 'prod-2', name: 'Amoxicillin 250mg Syrup', price: 250, stock: 25, image: 'medicine-2', description: "Antibiotic for bacterial infections." },
+  { id: 'prod-3', name: 'Ibuprofen 200mg', price: 120, stock: 4, image: 'medicine-3', description: "Reduces inflammation and pain." },
+  { id: 'prod-4', name: 'Vitamin C 1000mg', price: 450, stock: 100, image: 'medicine-4', description: "Supports the immune system." },
 ];
 
 export interface Review {
