@@ -23,14 +23,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Mock user database
 const mockUsers: User[] = [
-  { id: '1', email: 'patient@medichain.com', role: 'patient' },
-  { id: '2', email: 'doctor@medichain.com', role: 'doctor' },
-  { id: '3', email: 'pharmacy@medichain.com', role: 'pharmacy' },
+  { id: '1', email: 'patient@vitallink.com', role: 'patient' },
+  { id: '2', email: 'doctor@vitallink.com', role: 'doctor' },
+  { id: '3', email: 'pharmacy@vitallink.com', role: 'pharmacy' },
 ];
 const mockPasswords: { [email: string]: string } = {
-  'patient@medichain.com': 'password',
-  'doctor@medichain.com': 'password',
-  'pharmacy@medichain.com': 'password',
+  'patient@vitallink.com': 'password',
+  'doctor@vitallink.com': 'password',
+  'pharmacy@vitallink.com': 'password',
 };
 
 
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Simulate checking for a logged-in user
     try {
-      const storedUser = sessionStorage.getItem('medichain-user');
+      const storedUser = sessionStorage.getItem('vitallink-user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const foundUser = mockUsers.find(u => u.email === email);
     if (foundUser && mockPasswords[email] === password) {
       setUser(foundUser);
-      sessionStorage.setItem('medichain-user', JSON.stringify(foundUser));
+      sessionStorage.setItem('vitallink-user', JSON.stringify(foundUser));
       return foundUser;
     }
     return null;
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
-    sessionStorage.removeItem('medichain-user');
+    sessionStorage.removeItem('vitallink-user');
   };
 
   return (
