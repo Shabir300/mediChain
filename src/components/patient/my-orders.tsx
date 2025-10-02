@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { pharmacyProducts, Product, Order } from '@/lib/data';
+import { pharmacyProducts, Product, Order, orders as initialOrdersData } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -17,10 +17,10 @@ interface CartItem extends Product {
   quantity: number;
 }
 
-export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
+export function MyOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>(initialOrders || []);
+  const [orders, setOrders] = useState<Order[]>(initialOrdersData);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { toast } = useToast();
 
@@ -63,7 +63,8 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
         patientName: 'Demo Patient',
         items: cart.map(item => ({ productId: item.id, name: item.name, quantity: item.quantity })),
         total: cartTotal,
-        status: 'pending'
+        status: 'pending',
+        date: new Date().toISOString().split('T')[0]
     };
     setOrders(prev => [newOrder, ...prev]);
     setCart([]);
@@ -193,7 +194,7 @@ export function MyOrders({ orders: initialOrders }: { orders?: Order[] }) {
                             <div className='flex justify-between items-start'>
                                 <div>
                                     <CardTitle className='text-lg'>Order #{order.id.split('-')[1]}</CardTitle>
-                                    <CardDescription>Total: PKR {order.total.toFixed(2)}</CardDescription>
+                                    <CardDescription>Total: PKR {order.total.toFixed(2)} | Date: {order.date}</CardDescription>
                                 </div>
                                 <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
                             </div>

@@ -50,11 +50,13 @@ export interface Appointment {
   time: string;
   type: 'Normal' | 'Urgent';
   status: 'booked' | 'completed';
+  cost: number;
 }
 
 export const appointments: Appointment[] = [
-    { id: 'apt-1', patientName: 'Alice Johnson', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-08-10', time: '10:00 AM', type: 'Urgent', status: 'booked' },
-    { id: 'apt-2', patientName: 'Bob Williams', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-08-10', time: '11:30 AM', type: 'Normal', status: 'booked' },
+    { id: 'apt-1', patientName: 'Alice Johnson', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-08-10', time: '10:00 AM', type: 'Urgent', status: 'booked', cost: 2500 },
+    { id: 'apt-2', patientName: 'Bob Williams', doctorId: '1', doctorName: 'Dr. Evelyn Reed', date: '2024-08-10', time: '11:30 AM', type: 'Normal', status: 'booked', cost: 1500 },
+    { id: 'apt-3', patientName: 'Charlie Brown', doctorId: '2', doctorName: 'Dr. Samuel Chen', date: '2024-07-20', time: '02:00 PM', type: 'Normal', status: 'completed', cost: 1200 },
 ];
 
 export interface Order {
@@ -63,4 +65,41 @@ export interface Order {
     items: { productId: string; name: string; quantity: number }[];
     total: number;
     status: 'pending' | 'approved' | 'declined';
+    date: string;
 }
+
+export const orders: Order[] = [
+     {
+        id: 'ord-1694523600000',
+        patientName: 'Demo Patient',
+        items: [
+            { productId: 'prod-1', name: 'Paracetamol 500mg', quantity: 2 },
+            { productId: 'prod-3', name: 'Ibuprofen 200mg', quantity: 1 }
+        ],
+        total: 260,
+        status: 'approved',
+        date: '2024-07-18'
+    },
+    {
+        id: 'ord-1694523700000',
+        patientName: 'Demo Patient',
+        items: [
+            { productId: 'prod-4', name: 'Vitamin C 1000mg', quantity: 1 }
+        ],
+        total: 450,
+        status: 'approved',
+        date: '2024-06-25'
+    }
+];
+
+export interface MedicalRecord {
+    id: string;
+    fileName: string;
+    uploadDate: string;
+    type: 'Lab Report' | 'Prescription' | 'Imaging';
+}
+
+export const medicalRecords: MedicalRecord[] = [
+    { id: 'rec-1', fileName: 'blood_test_results.pdf', uploadDate: '2024-07-10', type: 'Lab Report' },
+    { id: 'rec-2', fileName: 'chest_xray.pdf', uploadDate: '2024-06-22', type: 'Imaging' },
+];

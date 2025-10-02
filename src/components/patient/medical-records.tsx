@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { File, Upload } from 'lucide-react';
+import { medicalRecords as initialMedicalRecords, MedicalRecord } from '@/lib/data';
 
 const recordSchema = z.object({
   file: z.any()
@@ -21,7 +22,7 @@ type RecordFormValues = z.infer<typeof recordSchema>;
 
 export function MedicalRecords() {
     const { toast } = useToast();
-    const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+    const [uploadedFiles, setUploadedFiles] = useState<MedicalRecord[]>(initialMedicalRecords);
     
     const form = useForm<RecordFormValues>({
         resolver: zodResolver(recordSchema),
@@ -31,7 +32,13 @@ export function MedicalRecords() {
         // In a real app, this would upload to Firebase Storage.
         // For the demo, we just add the filename to a list and show a toast.
         const fileName = data.file[0].name;
-        setUploadedFiles(prev => [...prev, fileName]);
+        const newRecord: MedicalRecord = {
+            id: `rec-${Date.now()}`,
+            fileName: fileName,
+            uploadDate: new Date().toISOString().split('T')[0],
+            type: 'Prescription' // Default type for demo
+        };
+        setUploadedFiles(prev => [newRecord, ...prev]);
         toast({
             title: 'File Uploaded',
             description: `${fileName} has been added to your medical records.`,
@@ -40,52 +47,65 @@ export function MedicalRecords() {
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Upload Medical Record</CardTitle>
-                <CardDescription>Upload a PDF of your medical history or recent test results.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="file"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>PDF File</FormLabel>
-                                    <FormControl>
-                                        <Input 
-                                            type="file" 
-                                            accept=".pdf" 
-                                            onChange={(e) => field.onChange(e.target.files)}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" className="w-full">
-                            <Upload className="mr-2 h-4 w-4" /> Upload Record
-                        </Button>
-                    </form>
-                </Form>
-                <div className="mt-6">
-                    <h3 className="text-lg font-semibold mb-2">Uploaded Files</h3>
+        <div className="grid gap-8 md:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Upload Medical Record</CardTitle>
+                    <CardDescription>Upload a PDF of your medical history or recent test results.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="file"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>PDF File</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="file" 
+                                                accept=".pdf" 
+                                                onChange={(e) => field.onChange(e.target.files)}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="submit" className="w-full">
+                                <Upload className="mr-2 h-4 w-4" /> Upload Record
+                            </Button>
+                        </form>
+                    </Form>
+                </CardContent>
+            </Card>
+            <Card>
+                 <CardHeader>
+                    <CardTitle className="font-headline">Uploaded Files</CardTitle>
+                    <CardDescription>Your complete medical record history.</CardDescription>
+                </CardHeader>
+                <CardContent>
                     {uploadedFiles.length > 0 ? (
                         <ul className="space-y-2">
-                            {uploadedFiles.map((file, index) => (
-                                <li key={index} className="flex items-center text-sm p-2 bg-muted/50 rounded-md">
-                                    <File className="h-4 w-4 mr-2 text-muted-foreground" />
-                                    {file}
+                            {uploadedFiles.map((file) => (
+                                <li key={file.id} className="flex items-center justify-between text-sm p-3 bg-muted/50 rounded-md">
+                                    <div className='flex items-center'>
+                                        <File className="h-4 w-4 mr-3 text-muted-foreground" />
+                                        <div>
+                                            <p className='font-medium'>{file.fileName}</p>
+                                            <p className='text-xs text-muted-foreground'>Uploaded: {file.uploadDate}</p>
+                                        </div>
+                                    </div>
+                                    <Badge variant="secondary">{file.type}</Badge>
                                 </li>
                             ))}
                         </ul>
                     ) : (
-                        <p className="text-sm text-muted-foreground">No files uploaded yet.</p>
+                        <p className="text-sm text-center text-muted-foreground py-8">No files uploaded yet.</p>
                     )}
-                </div>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
