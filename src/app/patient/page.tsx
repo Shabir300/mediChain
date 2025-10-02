@@ -72,7 +72,7 @@ export default function PatientPage() {
                             <CardTitle className="font-headline flex items-center gap-2"><Calendar className="h-6 w-6" /> Recent Appointments</CardTitle>
                             <CardDescription>Your upcoming and recent visits.</CardDescription>
                         </div>
-                        <Link href="/patient/doctors">
+                        <Link href="/patient/appointments">
                             <Button variant="outline" size="sm">View All</Button>
                         </Link>
                     </CardHeader>
