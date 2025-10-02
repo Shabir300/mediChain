@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { File, Upload } from 'lucide-react';
 import { medicalRecords as initialMedicalRecords, MedicalRecord } from '@/lib/data';
+import { Badge } from '@/components/ui/badge';
 
 const recordSchema = z.object({
   file: z.any()
