@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -21,6 +21,7 @@ import {
   User as UserIcon,
   Users,
   Hospital,
+  Pill,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
@@ -52,6 +53,7 @@ import { SymptomCheckerSheet } from './patient/symptom-checker-sheet';
 import { DoctorAiSheet } from './doctor/doctor-ai-sheet';
 import { PharmacyAiSheet } from './pharmacy/pharmacy-ai-sheet';
 import { ToastAction } from './ui/toast';
+import { MedicationReminder } from './patient/medication-reminder';
 
 interface NavItem {
   href: string;
@@ -63,6 +65,7 @@ const patientNavItems: NavItem[] = [
   { href: '/patient', icon: Home, label: 'Dashboard' },
   { href: '/patient/doctors', icon: Search, label: 'Find a Doctor' },
   { href: '/patient/hospitals', icon: Hospital, label: 'Hospitals' },
+  { href: '/patient/medication', icon: Pill, label: 'Medication' },
   { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
   { href: '/patient/orders', icon: ShoppingCart, label: 'Pharmacy Orders' },
 ];
@@ -91,24 +94,6 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
       router.push('/');
     }
   }, [user, loading, router, requiredRole]);
-  
-  useEffect(() => {
-      if (user?.role === 'patient') {
-          const timer = setTimeout(() => {
-              const { id } = toast({
-                  title: 'Medication Reminder',
-                  description: 'It\'s time to take your Paracetamol.',
-                  action: (
-                    <ToastAction altText="Dismiss" onClick={() => dismiss(id)}>
-                      Dismiss
-                    </ToastAction>
-                  ),
-                  duration: Infinity, // Keep toast open until dismissed
-              });
-          }, 15000); // 15-second reminder for demo
-          return () => clearTimeout(timer);
-      }
-  }, [user, toast, dismiss]);
 
   const handleLogout = () => {
     logout();
@@ -223,6 +208,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
           </div>
         </header>
         <main className="relative flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+            {user.role === 'patient' && <MedicationReminder />}
             {children}
             {renderAiChat()}
         </main>
