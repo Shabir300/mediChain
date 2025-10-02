@@ -19,6 +19,24 @@
       "imageHint": "woman doctor"
     },
     {
+      "id": "patient-1",
+      "description": "Portrait of Alice Johnson",
+      "imageUrl": "https://images.unsplash.com/photo-1558222218-b2446de36159?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc1OTQ4NDY4OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "patient-2",
+      "description": "Portrait of Bob Williams",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTk0ODQ2ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "patient-3",
+      "description": "Portrait of Charlie Brown",
+      "imageUrl": "https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTk0ODQ2ODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
       "id": "medicine-1",
       "description": "Bottle of Paracetamol 500mg tablets",
       "imageUrl": "https://images.unsplash.com/photo-1632024956972-90f6f1ab7807?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwaWxscyUyMGJvdHRsZXxlbnwwfHx8fDE3NTkzMjUyODl8MA&ixlib=rb-4.1.0&q=80&w=1080",

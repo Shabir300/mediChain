@@ -11,6 +11,19 @@ export const doctors: Doctor[] = [
   { id: '3', name: 'Dr. Aisha Khan', specialty: 'Dermatologist', avatar: 'doctor-3' },
 ];
 
+export interface Patient {
+    id: string;
+    name: string;
+    lastVisit: string;
+    avatar: string;
+}
+
+export const patients: Patient[] = [
+    { id: 'pat-1', name: 'Alice Johnson', lastVisit: '2024-08-10', avatar: 'patient-1' },
+    { id: 'pat-2', name: 'Bob Williams', lastVisit: '2024-08-10', avatar: 'patient-2' },
+    { id: 'pat-3', name: 'Charlie Brown', lastVisit: '2024-07-20', avatar: 'patient-3' },
+]
+
 export interface Product {
   id: string;
   name: string;
@@ -65,7 +78,7 @@ export interface Order {
     items: { productId: string; name: string; quantity: number }[];
     total: number;
     status: 'pending' | 'approved' | 'declined';
-    date: string;
+    date?: string;
 }
 
 export const orders: Order[] = [
