@@ -21,7 +21,7 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
-type FilterType = 'all' | 'nearby' | 'in-city' | 'online';
+type FilterType = 'all' | 'nearby' | 'in-city';
 
 export function DoctorSearch() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,8 +42,6 @@ export function DoctorSearch() {
                 return doctor.location === 'Nearby';
             case 'in-city':
                 return doctor.location === 'In City';
-            case 'online':
-                return doctor.availability === 'Online';
             case 'all':
             default:
                 return true;
@@ -97,10 +95,6 @@ export function DoctorSearch() {
                  <div className="flex items-center space-x-2">
                     <RadioGroupItem value="in-city" id="in-city" />
                     <Label htmlFor="in-city">In City</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="online" id="online" />
-                    <Label htmlFor="online">Online</Label>
                 </div>
             </RadioGroup>
           </div>

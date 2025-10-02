@@ -20,6 +20,7 @@ import {
   Stethoscope,
   User as UserIcon,
   Users,
+  Hospital,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
@@ -60,6 +61,7 @@ interface NavItem {
 const patientNavItems: NavItem[] = [
   { href: '/patient', icon: Home, label: 'Dashboard' },
   { href: '/patient/doctors', icon: Search, label: 'Find a Doctor' },
+  { href: '/patient/hospitals', icon: Hospital, label: 'Hospitals' },
   { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
   { href: '/patient/orders', icon: ShoppingCart, label: 'Pharmacy Orders' },
 ];
