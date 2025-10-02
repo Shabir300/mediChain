@@ -46,7 +46,7 @@ export function AppointmentsCalendar() {
                                     <div className='flex items-center gap-2'>
                                         <Badge variant={apt.type === 'Urgent' ? 'destructive' : 'secondary'}>{apt.type}</Badge>
                                         <Button variant="outline" size="sm" onClick={() => setSelectedAppointment(apt)}>
-                                            <Bot className="mr-2 h-4 w-4" /> AI Summary
+                                            <Bot className="mr-2 h-4 w-4" /> AI Briefing
                                         </Button>
                                         <Button size="sm" onClick={handleStartMeeting}>
                                             <Video className="mr-2 h-4 w-4" /> Start Meeting

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { lowStockAlert } from '@/ai/flows/low-stock-alerts';
+import { patientStockAlert } from '@/ai/flows/patient-stock-alert';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,16 +42,14 @@ export function PharmacyAiSheet() {
     setChatHistory(prev => [...prev, userMessage]);
     form.reset({prompt: ''});
 
-    // In a real app, this would query inventory data.
-    // For this demo, we use mock data if the prompt mentions "stock" or a product.
-    if (data.prompt.toLowerCase().includes('stock') || data.prompt.toLowerCase().includes('ibuprofen')) {
+    // This is now an agentic check. It uses a tool to check patient's stock and decide if a reorder is needed.
+    if (data.prompt.toLowerCase().includes('stock') || data.prompt.toLowerCase().includes('paracetamol')) {
         try {
-            const result = await lowStockAlert({
-                productName: 'Ibuprofen 200mg',
-                currentStock: 4, // Mock low stock
-                stockChangeReason: 'Recent sales',
+            const result = await patientStockAlert({
+                productName: 'Paracetamol 500mg',
+                currentStock: 2, // Mock low stock for the patient
             });
-            const aiMessage: ChatMessage = { sender: 'ai', text: result.alertMessage || "Stock level for Ibuprofen 200mg is currently adequate." };
+            const aiMessage: ChatMessage = { sender: 'ai', text: result.alertMessage };
             setChatHistory(prev => [...prev, aiMessage]);
         } catch (error) {
             console.error('AI Pharmacy Assistant Error:', error);
@@ -59,7 +57,7 @@ export function PharmacyAiSheet() {
             setChatHistory(prev => [...prev, errorMessage]);
         }
     } else {
-        const aiMessage: ChatMessage = { sender: 'ai', text: "I can help with stock alerts. For example, try 'Check stock for Ibuprofen'." };
+        const aiMessage: ChatMessage = { sender: 'ai', text: "I can help with stock alerts for your personal medication. For example, try 'Check my stock for Paracetamol'." };
         setChatHistory(prev => [...prev, aiMessage]);
     }
 
@@ -83,7 +81,7 @@ export function PharmacyAiSheet() {
                 <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
                     <MessageCircle className="mr-2 h-8 w-8 mb-2" />
                     <p className='font-bold'>Your AI assistant for inventory management.</p>
-                    <p className='text-xs mt-2'>Try "Check stock for Ibuprofen".</p>
+                    <p className='text-xs mt-2'>Try "Do I need to reorder any medication?".</p>
                 </div>
             ) : (
                 chatHistory.map((msg, index) => (
@@ -113,10 +111,10 @@ export function PharmacyAiSheet() {
             name="prompt"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>Ask about inventory</FormLabel>
+                <FormLabel>Ask about your medication stock</FormLabel>
                 <FormControl>
                     <Textarea
-                    placeholder="e.g., Check stock for Ibuprofen"
+                    placeholder="e.g., Check my stock for Paracetamol"
                     {...field}
                     disabled={isLoading}
                     />

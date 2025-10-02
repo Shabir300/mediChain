@@ -25,11 +25,12 @@ export function PatientSummaryModal({ appointment, isOpen, onClose }: PatientSum
                 setError(null);
                 setSummary(null);
 
-                // Mock data as per the prompt
+                // This simulates fetching real-time data for the specific patient.
+                // In a real app, you would fetch this from a database based on appointment.patientId
                 const patientData: PatientSummaryInput = {
                     patientHistory: "Patient has a history of mild asthma and seasonal allergies. No surgeries. Non-smoker.",
                     lastVisitDate: "2024-01-15",
-                    condition: "Patient reports fever and sore throat, which prompted this urgent appointment.",
+                    condition: `Patient is coming in for a ${appointment.type.toLowerCase()} visit regarding a recent complaint.`,
                     currentMedicine: "Albuterol inhaler as needed for asthma."
                 };
 
@@ -51,16 +52,16 @@ export function PatientSummaryModal({ appointment, isOpen, onClose }: PatientSum
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle className='font-headline'>AI Summary for {appointment.patientName}</DialogTitle>
+                    <DialogTitle className='font-headline'>AI Pre-Consultation Briefing: {appointment.patientName}</DialogTitle>
                     <DialogDescription>
-                        This is an AI-generated summary based on the patient's provided information.
+                        This is an AI-generated summary to prepare you for your upcoming appointment.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     {isLoading && (
                         <div className="flex items-center justify-center h-24">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            <p className="ml-2">Generating summary...</p>
+                            <p className="ml-2">Generating briefing...</p>
                         </div>
                     )}
                     {error && (

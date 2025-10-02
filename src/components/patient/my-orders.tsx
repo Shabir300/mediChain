@@ -1,20 +1,26 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { pharmacyProducts, Product, Order, orders as initialOrdersData } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, ShoppingCart, Minus, Plus, X } from 'lucide-react';
+import { Search, ShoppingCart, Minus, Plus, X, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
+import { patientStockAlert } from '@/ai/flows/patient-stock-alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface CartItem extends Product {
   quantity: number;
+}
+
+interface PatientStock extends Product {
+    patientStock: number;
 }
 
 export function MyOrders() {
@@ -22,7 +28,31 @@ export function MyOrders() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>(initialOrdersData);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [patientInventory, setPatientInventory] = useState<PatientStock[]>(() => [
+    { ...pharmacyProducts[0], patientStock: 5 }, // Start with 5 Paracetamol
+    { ...pharmacyProducts[2], patientStock: 3 }, // And 3 Ibuprofen
+  ]);
+  const [aiAlert, setAiAlert] = useState<string | null>(null);
+
   const { toast } = useToast();
+
+  useEffect(() => {
+    const checkStock = async () => {
+        const lowStockItem = patientInventory.find(item => item.patientStock < 4);
+        if (lowStockItem) {
+            try {
+                const result = await patientStockAlert({
+                    productName: lowStockItem.name,
+                    currentStock: lowStockItem.patientStock,
+                });
+                setAiAlert(result.alertMessage);
+            } catch (error) {
+                console.error("AI patient stock alert error", error);
+            }
+        }
+    };
+    checkStock();
+  }, [patientInventory]);
 
   const filteredProducts = pharmacyProducts.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -67,6 +97,21 @@ export function MyOrders() {
         date: new Date().toISOString().split('T')[0]
     };
     setOrders(prev => [newOrder, ...prev]);
+
+    // Add ordered items to patient inventory
+    setPatientInventory(prevInventory => {
+        const newInventory = [...prevInventory];
+        cart.forEach(cartItem => {
+            const inventoryItem = newInventory.find(invItem => invItem.id === cartItem.id);
+            if (inventoryItem) {
+                inventoryItem.patientStock += cartItem.quantity;
+            } else {
+                newInventory.push({ ...cartItem, patientStock: cartItem.quantity });
+            }
+        });
+        return newInventory;
+    });
+
     setCart([]);
     setIsCartOpen(false);
     toast({
@@ -88,13 +133,20 @@ export function MyOrders() {
     <div className='space-y-8'>
         <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
             <Card>
-                 <CardHeader className="flex flex-row items-center justify-between">
+                 <CardHeader className="flex flex-row items-start justify-between gap-4">
                     <div>
                         <CardTitle className="font-headline">Order Medicine</CardTitle>
-                        <CardDescription>Search for medicine and add to your cart.</CardDescription>
+                        <CardDescription>Search for medicine and add to your cart. You can also track your personal stock.</CardDescription>
+                         {aiAlert && (
+                            <Alert className="mt-4">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle className="font-bold">AI Proactive Alert</AlertTitle>
+                                <AlertDescription>{aiAlert} Would you like to re-order now?</AlertDescription>
+                            </Alert>
+                        )}
                     </div>
                      <SheetTrigger asChild>
-                        <Button variant="outline">
+                        <Button variant="outline" className="shrink-0">
                             <ShoppingCart className="mr-2 h-4 w-4" />
                             View Cart
                             {cartItemCount > 0 && <Badge className="ml-2">{cartItemCount}</Badge>}
@@ -114,14 +166,18 @@ export function MyOrders() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredProducts.map((product) => {
                         const image = getImage(product.image);
+                        const patientStock = patientInventory.find(p => p.id === product.id)?.patientStock || 0;
                         return (
                             <Card key={product.id} className="flex flex-col">
                                 <CardHeader className='p-0'>
                                 {image && <Image src={image.imageUrl} alt={image.description} data-ai-hint={image.imageHint} width={400} height={300} className='w-full h-40 object-cover rounded-t-lg'/>}
                                 </CardHeader>
                                 <CardContent className="p-4 flex-grow">
-                                    <h3 className="font-bold">{product.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{product.description}</p>
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="font-bold">{product.name}</h3>
+                                        <Badge variant={patientStock > 3 ? 'secondary' : 'destructive'}>In Stock: {patientStock}</Badge>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
                                     <p className="font-bold mt-2">PKR {product.price.toFixed(2)}</p>
                                 </CardContent>
                                 <CardFooter className="p-4">
