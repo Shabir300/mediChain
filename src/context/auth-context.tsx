@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     // Simulate checking for a logged-in user
     try {
-      const storedUser = sessionStorage.getItem('vitallink-user');
+      const storedUser = sessionStorage.getItem('curelink-user');
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const foundUser = mockUsers.find(u => u.email === email);
     if (foundUser && mockPasswords[email] === password) {
       setUser(foundUser);
-      sessionStorage.setItem('vitallink-user', JSON.stringify(foundUser));
+      sessionStorage.setItem('curelink-user', JSON.stringify(foundUser));
       return foundUser;
     }
     return null;
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
-    sessionStorage.removeItem('vitallink-user');
+    sessionStorage.removeItem('curelink-user');
   };
 
   return (
