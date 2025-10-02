@@ -19,17 +19,36 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+
+type FilterType = 'all' | 'nearby' | 'in-city' | 'online';
 
 export function DoctorSearch() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState<FilterType>('all');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isUrgent, setIsUrgent] = useState(false);
   const { toast } = useToast();
 
   const filteredDoctors = doctors.filter(
-    (doctor) =>
-      doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase())
+    (doctor) => {
+        const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        switch (filter) {
+            case 'nearby':
+                return doctor.location === 'Nearby';
+            case 'in-city':
+                return doctor.location === 'In City';
+            case 'online':
+                return doctor.availability === 'Online';
+            case 'all':
+            default:
+                return true;
+        }
+    }
   );
   
   const getImage = (id: string) => {
@@ -56,14 +75,34 @@ export function DoctorSearch() {
           <CardDescription>Search for available doctors and book an appointment.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or specialty..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                placeholder="Search by name or specialty..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+             <RadioGroup defaultValue="all" onValueChange={(value: FilterType) => setFilter(value)} className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="all" id="all" />
+                    <Label htmlFor="all">All</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="nearby" id="nearby" />
+                    <Label htmlFor="nearby">Nearby</Label>
+                </div>
+                 <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="in-city" id="in-city" />
+                    <Label htmlFor="in-city">In City</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="online" id="online" />
+                    <Label htmlFor="online">Online</Label>
+                </div>
+            </RadioGroup>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredDoctors.map((doctor) => {
@@ -85,6 +124,12 @@ export function DoctorSearch() {
                         <CardContent className="p-4">
                             <CardTitle className="text-xl font-headline">{doctor.name}</CardTitle>
                             <CardDescription className='mt-1'>{doctor.specialty}</CardDescription>
+                             <div className='flex gap-2 mt-2'>
+                                <Label className='text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full'>{doctor.location}</Label>
+                                {doctor.availability === 'Online' && (
+                                    <Label className='text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full'>Online</Label>
+                                )}
+                            </div>
                         </CardContent>
                         <CardFooter className="p-4">
                             <Button className="w-full" onClick={() => setSelectedDoctor(doctor)}>Book Appointment</Button>

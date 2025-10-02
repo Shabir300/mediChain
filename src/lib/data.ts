@@ -3,12 +3,14 @@ export interface Doctor {
   name: string;
   specialty: string;
   avatar: string;
+  location: 'Nearby' | 'In City';
+  availability: 'Online' | 'Offline';
 }
 
 export const doctors: Doctor[] = [
-  { id: '1', name: 'Dr. Evelyn Reed', specialty: 'Cardiologist', avatar: 'doctor-1' },
-  { id: '2', name: 'Dr. Samuel Chen', specialty: 'Pediatrician', avatar: 'doctor-2' },
-  { id: '3', name: 'Dr. Aisha Khan', specialty: 'Dermatologist', avatar: 'doctor-3' },
+  { id: '1', name: 'Dr. Evelyn Reed', specialty: 'Cardiologist', avatar: 'doctor-1', location: 'Nearby', availability: 'Online' },
+  { id: '2', name: 'Dr. Samuel Chen', specialty: 'Pediatrician', avatar: 'doctor-2', location: 'In City', availability: 'Online' },
+  { id: '3', name: 'Dr. Aisha Khan', specialty: 'Dermatologist', avatar: 'doctor-3', location: 'Nearby', availability: 'Offline' },
 ];
 
 export interface Patient {
