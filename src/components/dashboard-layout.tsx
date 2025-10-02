@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect } from 'react';
@@ -22,6 +21,7 @@ import {
   Users,
   Hospital,
   Pill,
+  DollarSign,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
@@ -68,6 +68,7 @@ const patientNavItems: NavItem[] = [
   { href: '/patient/medication', icon: Pill, label: 'Medication' },
   { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
   { href: '/patient/orders', icon: ShoppingCart, label: 'Pharmacy Orders' },
+  { href: '/patient/budget', icon: DollarSign, label: 'Budget' },
 ];
 
 const doctorNavItems: NavItem[] = [
@@ -106,6 +107,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
           variant: 'destructive',
           title: 'SOS Signal Sent',
           description: 'Emergency request sent to nearby hospital.',
+          action: <ToastAction altText="Dismiss" onClick={() => dismiss()}>Dismiss</ToastAction>,
       });
   };
 
