@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview An AI-powered symptom checker flow.
+ * @fileOverview An AI-powered symptom checker flow that can act as an agent.
  *
- * - symptomChecker - A function that takes a symptom description and returns guidance.
+ * - symptomChecker - A function that takes a symptom description and returns guidance, potentially including a list of recommended doctors.
  * - SymptomCheckerInput - The input type for the symptomChecker function.
  * - SymptomCheckerOutput - The return type for the symptomChecker function.
  */
@@ -19,48 +19,40 @@ const SymptomCheckerInputSchema = z.object({
   medicalHistory: z
     .string()
     .optional()
-    .describe('The patient\'s medical history, if available.'),
+    .describe("The patient's medical history, if available."),
   chatHistory: z
     .string()
     .optional()
-    .describe('The previous conversation history.'),
+    .describe('The history of the current conversation, if available.'),
 });
 export type SymptomCheckerInput = z.infer<typeof SymptomCheckerInputSchema>;
 
 const SymptomCheckerOutputSchema = z.object({
-  guidance: z
-    .string()
-    .describe(
-      'Guidance on what the patient should do based on their symptoms (e.g., take rest, book urgent appointment).'
-    ),
+  guidance: z.string().describe('AI-generated guidance for the patient, which may include a summary of findings or a list of recommended doctors.'),
 });
 export type SymptomCheckerOutput = z.infer<typeof SymptomCheckerOutputSchema>;
 
+// Define the tool for the AI to use
 const findAvailableDoctors = ai.defineTool(
-    {
-        name: 'findAvailableDoctors',
-        description: 'Finds doctors who are currently available and optionally filters by specialty.',
-        inputSchema: z.object({
-            specialty: z.string().optional().describe('The specialty to filter by (e.g., Cardiologist, Dermatologist).'),
-        }),
-        outputSchema: z.array(z.object({
-            name: z.string(),
-            specialty: z.string(),
-        })),
-    },
-    async (input) => {
-        // In a real app, this would query a database. For now, we filter mock data.
-        return doctors.filter(doctor => 
-            doctor.availability === 'Online' && 
-            (!input.specialty || doctor.specialty.toLowerCase() === input.specialty.toLowerCase())
-        ).map(d => ({ name: d.name, specialty: d.specialty }));
-    }
+  {
+    name: 'findAvailableDoctors',
+    description: 'Finds available doctors based on a medical specialty.',
+    inputSchema: z.object({
+      specialty: z.string().describe('The medical specialty to search for (e.g., Cardiologist, Pediatrician, Dermatologist).'),
+    }),
+    outputSchema: z.array(z.object({
+        name: z.string(),
+        specialty: z.string(),
+    })),
+  },
+  async ({specialty}) => {
+    // In a real app, this would query a database. Here, we filter the mock data.
+    return doctors.filter(doctor => doctor.specialty.toLowerCase() === specialty.toLowerCase() && doctor.availability === 'Online');
+  }
 );
 
 
-export async function symptomChecker(
-  input: SymptomCheckerInput
-): Promise<SymptomCheckerOutput> {
+export async function symptomChecker(input: SymptomCheckerInput): Promise<SymptomCheckerOutput> {
   return symptomCheckerFlow(input);
 }
 
@@ -69,27 +61,23 @@ const prompt = ai.definePrompt({
   input: {schema: SymptomCheckerInputSchema},
   output: {schema: SymptomCheckerOutputSchema},
   tools: [findAvailableDoctors],
-  prompt: `You are a friendly and empathetic AI medical assistant for CureLink. Your goal is to help patients understand their symptoms and guide them on the next steps.
+  prompt: `You are an AI medical assistant. Your role is to analyze a patient's symptoms and provide initial guidance.
 
-You are having a conversation with a patient. Be polite, caring, and professional.
+  Here is the information provided by the patient:
+  - Symptoms: {{{symptomDescription}}}
+  - Medical History: {{{medicalHistory}}}
+  - Conversation History: {{{chatHistory}}}
 
-1.  If the user says "hi" or starts with a simple greeting, respond warmly, introduce yourself, and ask how you can help them with their health today.
-2.  When the user describes their symptoms, analyze them carefully.
-3.  If available, consider the patient's medical history:
-    Medical History: {{{medicalHistory}}}
-4.  Ask clarifying questions like a doctor would to get more details. For example: "How long have you had these symptoms?", "Is the pain sharp or dull?", "Do you have any other symptoms?".
-5.  Based on the symptoms, decide on the appropriate next step. If the symptoms seem to require a specialist (e.g., skin issues, heart-related concerns), use the 'findAvailableDoctors' tool to find a relevant doctor.
-6.  Present the results from the tool clearly to the user as part of your guidance.
-7.  Always include a disclaimer that you are an AI assistant and this is not a substitute for professional medical advice.
-
-Conversation History:
-{{{chatHistory}}}
-
-Patient's latest message:
-"{{{symptomDescription}}}"
-
-Your response:
-`,
+  Follow these steps:
+  1.  Analyze the symptoms and medical history.
+  2.  Determine if the symptoms are mild, moderate, or severe.
+  3.  If the symptoms seem to require a specialist's attention, use the 'findAvailableDoctors' tool to find a relevant specialist (e.g., for a skin rash, find a Dermatologist).
+  4.  Provide a clear, empathetic response to the patient.
+      - If you use the tool, list the available doctors you found and recommend booking an appointment.
+      - If the symptoms are mild, suggest home care.
+      - If the symptoms are severe, strongly advise the patient to seek immediate medical attention at an emergency room.
+  
+  Do NOT provide a diagnosis. Your guidance should be safe, cautious, and always encourage professional medical consultation when there is any doubt.`,
 });
 
 const symptomCheckerFlow = ai.defineFlow(
@@ -100,6 +88,8 @@ const symptomCheckerFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    return {
+      guidance: output?.guidance || "I'm sorry, I was unable to process your request at this time. Please try again later.",
+    }
   }
 );
