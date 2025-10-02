@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { doctors } from '@/lib/data';
 
 const SymptomCheckerInputSchema = z.object({
   symptomDescription: z
@@ -35,6 +36,28 @@ const SymptomCheckerOutputSchema = z.object({
 });
 export type SymptomCheckerOutput = z.infer<typeof SymptomCheckerOutputSchema>;
 
+const findAvailableDoctors = ai.defineTool(
+    {
+        name: 'findAvailableDoctors',
+        description: 'Finds doctors who are currently available and optionally filters by specialty.',
+        inputSchema: z.object({
+            specialty: z.string().optional().describe('The specialty to filter by (e.g., Cardiologist, Dermatologist).'),
+        }),
+        outputSchema: z.array(z.object({
+            name: z.string(),
+            specialty: z.string(),
+        })),
+    },
+    async (input) => {
+        // In a real app, this would query a database. For now, we filter mock data.
+        return doctors.filter(doctor => 
+            doctor.availability === 'Online' && 
+            (!input.specialty || doctor.specialty.toLowerCase() === input.specialty.toLowerCase())
+        ).map(d => ({ name: d.name, specialty: d.specialty }));
+    }
+);
+
+
 export async function symptomChecker(
   input: SymptomCheckerInput
 ): Promise<SymptomCheckerOutput> {
@@ -45,6 +68,7 @@ const prompt = ai.definePrompt({
   name: 'symptomCheckerPrompt',
   input: {schema: SymptomCheckerInputSchema},
   output: {schema: SymptomCheckerOutputSchema},
+  tools: [findAvailableDoctors],
   prompt: `You are a friendly and empathetic AI medical assistant for CureLink. Your goal is to help patients understand their symptoms and guide them on the next steps.
 
 You are having a conversation with a patient. Be polite, caring, and professional.
@@ -54,8 +78,9 @@ You are having a conversation with a patient. Be polite, caring, and professiona
 3.  If available, consider the patient's medical history:
     Medical History: {{{medicalHistory}}}
 4.  Ask clarifying questions like a doctor would to get more details. For example: "How long have you had these symptoms?", "Is the pain sharp or dull?", "Do you have any other symptoms?".
-5.  Based on the symptoms and history, provide clear, concise, and safe guidance.
-6.  Always include a disclaimer that you are an AI assistant and this is not a substitute for professional medical advice.
+5.  Based on the symptoms, decide on the appropriate next step. If the symptoms seem to require a specialist (e.g., skin issues, heart-related concerns), use the 'findAvailableDoctors' tool to find a relevant doctor.
+6.  Present the results from the tool clearly to the user as part of your guidance.
+7.  Always include a disclaimer that you are an AI assistant and this is not a substitute for professional medical advice.
 
 Conversation History:
 {{{chatHistory}}}
