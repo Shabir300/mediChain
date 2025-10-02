@@ -5,7 +5,7 @@ import { useMedicationStore } from "@/hooks/use-medication-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Pill, DollarSign, FileText, Activity } from "lucide-react";
+import { Calendar, Pill, DollarSign, FileText } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MedicalSummary } from "@/components/patient/medical-summary";
