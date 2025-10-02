@@ -56,7 +56,7 @@ export function FindHospitals() {
         <Card>
             <CardHeader>
                 <CardTitle className='font-headline'>Nearby Hospitals</CardTitle>
-                <CardDescription>Based on your current location (simulated for demo). <Button variant="link" size="sm" onClick={handleGetLocation}>Refresh Location</Button></CardDescription>
+                <CardDescription>Based on your current location. <Button variant="link" size="sm" onClick={handleGetLocation}>Refresh Location</Button></CardDescription>
             </CardHeader>
             <CardContent>
                 {loading && (
