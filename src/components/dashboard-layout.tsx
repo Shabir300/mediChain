@@ -135,7 +135,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
         <SidebarHeader>
           <div className="flex w-full items-center justify-between p-2">
             <Link href="/" className="shrink-0">
-               <Stethoscope className="h-8 w-8 text-accent" />
+               <Logo />
             </Link>
           </div>
         </SidebarHeader>
@@ -160,9 +160,6 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
             <SidebarTrigger className="md:hidden" />
-            <div className='hidden md:block'>
-                <Logo className="scale-75" />
-            </div>
           <div className="flex w-full items-center justify-end gap-4">
             {user.role === 'patient' && (
                  <Button variant="destructive" size="sm" onClick={handleSOS}>
