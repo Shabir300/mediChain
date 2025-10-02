@@ -1,6 +1,6 @@
 
 "use client";
-import { appointments, pharmacyProducts, orders, medicalRecords as initialMedicalRecords } from "@/lib/data";
+import { appointments, orders, medicalRecords as initialMedicalRecords } from "@/lib/data";
 import { useMedicationStore } from "@/hooks/use-medication-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Pill, DollarSign, FileText, Activity } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { MedicalSummary } from "@/components/patient/medical-summary";
 
 export default function PatientPage() {
     const { medications: currentMedications } = useMedicationStore();
@@ -65,63 +66,71 @@ export default function PatientPage() {
                     </CardContent>
                 </Card>
             </div>
-            <div className="grid gap-8 md:grid-cols-2">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div className="space-y-1.5">
-                            <CardTitle className="font-headline flex items-center gap-2"><Calendar className="h-6 w-6" /> Recent Appointments</CardTitle>
-                            <CardDescription>Your upcoming and recent visits.</CardDescription>
-                        </div>
-                        <Link href="/patient/appointments">
-                            <Button variant="outline" size="sm">View All</Button>
-                        </Link>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {recentAppointments.map(apt => (
-                            <Card key={apt.id}>
-                                <CardContent className="p-4 flex items-center justify-between">
-                                    <div className='flex items-center gap-4'>
-                                        <div className='text-center p-2 rounded-md bg-muted'>
-                                            <div className='text-sm text-muted-foreground'>
-                                                {new Date(apt.date).toLocaleString('default', { month: 'short' })}
-                                            </div>
-                                            <div className='text-xl font-bold'>
-                                                {new Date(apt.date).getDate()}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold">{apt.doctorName}</p>
-                                            <p className="text-sm text-muted-foreground">{apt.time}</p>
-                                        </div>
-                                    </div>
-                                    <Badge variant={apt.type === 'Urgent' ? 'destructive' : 'secondary'}>{apt.type}</Badge>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <div className="space-y-1.5">
-                            <CardTitle className="font-headline flex items-center gap-2"><FileText className="h-6 w-6" /> Recent Records</CardTitle>
-                            <CardDescription>Your recently uploaded documents.</CardDescription>
-                        </div>
-                         <Link href="/patient/records">
-                            <Button variant="outline" size="sm">View All</Button>
-                        </Link>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                         {recentRecords.map(rec => (
-                            <div key={rec.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                <div>
-                                    <p className="font-semibold">{rec.fileName}</p>
-                                    <p className="text-sm text-muted-foreground">Uploaded on {rec.uploadDate}</p>
-                                </div>
-                                <Badge variant="secondary">{rec.type}</Badge>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <MedicalSummary />
+                </div>
+                <div className="space-y-8">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="space-y-1.5">
+                                <CardTitle className="font-headline flex items-center gap-2"><Calendar className="h-6 w-6" /> Recent Appointments</CardTitle>
+                                <CardDescription>Your upcoming and recent visits.</CardDescription>
                             </div>
-                        ))}
-                    </CardContent>
-                </Card>
+                            <Link href="/patient/appointments">
+                                <Button variant="outline" size="sm">View All</Button>
+                            </Link>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {recentAppointments.map(apt => (
+                                <Card key={apt.id}>
+                                    <CardContent className="p-4 flex items-center justify-between">
+                                        <div className='flex items-center gap-4'>
+                                            <div className='text-center p-2 rounded-md bg-muted'>
+                                                <div className='text-sm text-muted-foreground'>
+                                                    {new Date(apt.date).toLocaleString('default', { month: 'short' })}
+                                                </div>
+                                                <div className='text-xl font-bold'>
+                                                    {new Date(apt.date).getDate()}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold">{apt.doctorName}</p>
+                                                <p className="text-sm text-muted-foreground">{apt.time}</p>
+                                            </div>
+                                        </div>
+                                        <Badge variant={apt.type === 'Urgent' ? 'destructive' : 'secondary'}>{apt.type}</Badge>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                             {recentAppointments.length === 0 && (
+                                <p className="text-center py-4 text-sm text-muted-foreground">No recent appointments.</p>
+                             )}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="space-y-1.5">
+                                <CardTitle className="font-headline flex items-center gap-2"><FileText className="h-6 w-6" /> Recent Records</CardTitle>
+                                <CardDescription>Your recently uploaded documents.</CardDescription>
+                            </div>
+                            <Link href="/patient/records">
+                                <Button variant="outline" size="sm">View All</Button>
+                            </Link>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {recentRecords.map(rec => (
+                                <div key={rec.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                    <div>
+                                        <p className="font-semibold">{rec.fileName}</p>
+                                        <p className="text-sm text-muted-foreground">Uploaded on {rec.uploadDate}</p>
+                                    </div>
+                                    <Badge variant="secondary">{rec.type}</Badge>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </DashboardLayout>
     );
