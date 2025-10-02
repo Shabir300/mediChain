@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { doctors, Doctor } from '@/lib/data';
+import { doctors, Doctor, appointments } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -28,7 +28,20 @@ export function DoctorSearch() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isUrgent, setIsUrgent] = useState(false);
+  const [timeFilter, setTimeFilter] = useState('');
   const { toast } = useToast();
+
+  const convertTo24Hour = (time12h: string) => {
+    const [time, modifier] = time12h.split(' ');
+    let [hours, minutes] = time.split(':');
+    if (hours === '12') {
+      hours = '00';
+    }
+    if (modifier === 'PM') {
+      hours = String(parseInt(hours, 10) + 12);
+    }
+    return `${hours.padStart(2, '0')}:${minutes}`;
+  };
 
   const filteredDoctors = doctors.filter(
     (doctor) => {
@@ -37,15 +50,31 @@ export function DoctorSearch() {
 
         if (!matchesSearch) return false;
 
+        let matchesLocation = false;
         switch (filter) {
             case 'nearby':
-                return doctor.location === 'Nearby';
+                matchesLocation = doctor.location === 'Nearby';
+                break;
             case 'in-city':
-                return doctor.location === 'In City';
+                matchesLocation = doctor.location === 'In City';
+                break;
             case 'all':
             default:
-                return true;
+                matchesLocation = true;
+                break;
         }
+
+        if (!matchesLocation) return false;
+        
+        if (timeFilter) {
+            const isDoctorBusy = appointments.some(apt => {
+                 const appointmentTime24h = convertTo24Hour(apt.time);
+                 return apt.doctorId === doctor.id && appointmentTime24h === timeFilter;
+            });
+            if (isDoctorBusy) return false;
+        }
+
+        return true;
     }
   );
   
@@ -81,6 +110,15 @@ export function DoctorSearch() {
                 className="pl-10"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+             <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    type="time"
+                    className="pl-10"
+                    value={timeFilter}
+                    onChange={(e) => setTimeFilter(e.target.value)}
                 />
             </div>
              <RadioGroup defaultValue="all" onValueChange={(value: FilterType) => setFilter(value)} className="flex items-center space-x-4">
@@ -131,6 +169,11 @@ export function DoctorSearch() {
                     </Card>
                 )
             })}
+             {filteredDoctors.length === 0 && (
+                <div className="col-span-full text-center py-10">
+                    <p className="text-muted-foreground">No doctors match your criteria.</p>
+                </div>
+            )}
           </div>
         </CardContent>
       </Card>
