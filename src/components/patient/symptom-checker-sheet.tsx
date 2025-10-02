@@ -10,9 +10,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, MessageCircle, User, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { medicalRecords } from '@/lib/data';
 
 const symptomSchema = z.object({
-  symptomDescription: z.string().min(10, { message: 'Please describe your symptoms in at least 10 characters.' }),
+  symptomDescription: z.string().min(2, { message: 'Please describe your symptoms.' }),
 });
 
 type SymptomFormValues = z.infer<typeof symptomSchema>;
@@ -29,15 +30,31 @@ export function SymptomCheckerSheet() {
 
   const form = useForm<SymptomFormValues>({
     resolver: zodResolver(symptomSchema),
+    defaultValues: {
+      symptomDescription: '',
+    }
   });
 
   const onSubmit = async (data: SymptomFormValues) => {
     setIsLoading(true);
     const userMessage: ChatMessage = { sender: 'user', text: data.symptomDescription };
+    
+    // Combine existing chat history for the prompt
+    const historyText = chatHistory.map(msg => `${msg.sender === 'user' ? 'Patient' : 'AI Assistant'}: ${msg.text}`).join('\n');
+    
+    // Combine medical records into a single string for context
+    const medicalHistoryText = medicalRecords.map(rec => `${rec.type} - ${rec.fileName} (${rec.uploadDate})`).join('; ');
+
     setChatHistory(prev => [...prev, userMessage]);
+    form.reset({symptomDescription: ''});
+
 
     try {
-      const result = await symptomChecker({ symptomDescription: data.symptomDescription });
+      const result = await symptomChecker({ 
+        symptomDescription: data.symptomDescription,
+        chatHistory: historyText,
+        medicalHistory: medicalHistoryText,
+      });
       const aiMessage: ChatMessage = { sender: 'ai', text: result.guidance };
       setChatHistory(prev => [...prev, aiMessage]);
     } catch (error) {
@@ -46,7 +63,6 @@ export function SymptomCheckerSheet() {
       setChatHistory(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
-      form.reset({symptomDescription: ''});
     }
   };
 
