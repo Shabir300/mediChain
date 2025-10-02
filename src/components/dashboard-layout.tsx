@@ -51,6 +51,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SymptomCheckerSheet } from './patient/symptom-checker-sheet';
 import { DoctorAiSheet } from './doctor/doctor-ai-sheet';
 import { PharmacyAiSheet } from './pharmacy/pharmacy-ai-sheet';
+import { ToastAction } from './ui/toast';
 
 interface NavItem {
   href: string;
@@ -83,7 +84,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   const { user, logout, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
 
   useEffect(() => {
     if (!loading && (!user || user.role !== requiredRole)) {
@@ -94,15 +95,20 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   useEffect(() => {
       if (user?.role === 'patient') {
           const timer = setTimeout(() => {
-              toast({
+              const { id } = toast({
                   title: 'Medication Reminder',
                   description: 'It\'s time to take your Paracetamol.',
-                  action: <Button variant="outline" size="sm">Dismiss</Button>
+                  action: (
+                    <ToastAction altText="Dismiss" onClick={() => dismiss(id)}>
+                      Dismiss
+                    </ToastAction>
+                  ),
+                  duration: Infinity, // Keep toast open until dismissed
               });
           }, 15000); // 15-second reminder for demo
           return () => clearTimeout(timer);
       }
-  }, [user, toast]);
+  }, [user, toast, dismiss]);
 
   const handleLogout = () => {
     logout();
