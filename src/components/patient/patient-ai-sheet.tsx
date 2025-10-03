@@ -4,19 +4,20 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { symptomChecker } from '@/ai/flows/ai-symptom-checker';
+import { patientAiAssistant } from '@/ai/flows/patient-ai-assistant';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, MessageCircle, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useDataStore } from '@/hooks/use-data-store';
+import { useMedicationStore } from '@/hooks/use-medication-store';
 
-const symptomSchema = z.object({
-  symptomDescription: z.string().min(2, { message: 'Please describe your symptoms.' }),
+const querySchema = z.object({
+  userQuery: z.string().min(1, { message: 'Please enter a message.' }),
 });
 
-type SymptomFormValues = z.infer<typeof symptomSchema>;
+type QueryFormValues = z.infer<typeof querySchema>;
 
 interface ChatMessage {
     sender: 'user' | 'ai';
@@ -24,39 +25,47 @@ interface ChatMessage {
 }
 
 export function PatientAiSheet() {
-  const { medicalRecords } = useDataStore();
+  const { medicalRecords, appointments, orders } = useDataStore();
+  const { medications } = useMedicationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
-  const form = useForm<SymptomFormValues>({
-    resolver: zodResolver(symptomSchema),
+  const form = useForm<QueryFormValues>({
+    resolver: zodResolver(querySchema),
     defaultValues: {
-      symptomDescription: '',
+      userQuery: '',
     }
   });
 
-  const onSubmit = async (data: SymptomFormValues) => {
+  const onSubmit = async (data: QueryFormValues) => {
     setIsLoading(true);
-    const userMessage: ChatMessage = { sender: 'user', text: data.symptomDescription };
+    const userMessage: ChatMessage = { sender: 'user', text: data.userQuery };
     
-    const historyText = chatHistory.map(msg => `${msg.sender === 'user' ? 'Patient' : 'AI Assistant'}: ${msg.text}`).join('\n');
-    const medicalHistoryText = medicalRecords.map(rec => `${rec.type} - ${rec.fileName} (${rec.uploadDate})`).join('; ');
+    const currentChatHistory = chatHistory.map(msg => `${msg.sender === 'user' ? 'Patient' : 'AI Assistant'}: ${msg.text}`).join('\n');
+    const medicalHistoryText = medicalRecords.map(rec => rec.fileName).join(', ');
+    const appointmentsText = appointments.map(a => `${a.date} with ${a.doctorName}`).join(', ');
+    const medicationsText = medications.map(m => `${m.name} at ${m.time}`).join(', ');
+    const ordersText = orders.map(o => `Order on ${o.date} for PKR ${o.total}`).join(', ');
+
 
     setChatHistory(prev => [...prev, userMessage]);
-    form.reset({symptomDescription: ''});
+    form.reset({userQuery: ''});
 
 
     try {
-      const result = await symptomChecker({ 
-        symptomDescription: data.symptomDescription,
-        chatHistory: historyText,
+      const result = await patientAiAssistant({ 
+        userQuery: data.userQuery,
+        chatHistory: currentChatHistory,
         medicalHistory: medicalHistoryText,
+        appointments: appointmentsText,
+        medications: medicationsText,
+        orders: ordersText,
       });
-      const aiMessage: ChatMessage = { sender: 'ai', text: result.guidance };
+      const aiMessage: ChatMessage = { sender: 'ai', text: result.response };
       setChatHistory(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('AI Symptom Checker Error:', error);
+      console.error('AI Assistant Error:', error);
       const errorMessage: ChatMessage = { sender: 'ai', text: "I'm sorry, I encountered an error. Please try again later." };
       setChatHistory(prev => [...prev, errorMessage]);
     } finally {
@@ -80,14 +89,14 @@ export function PatientAiSheet() {
             {chatHistory.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
                     <MessageCircle className="mr-2 h-8 w-8 mb-2" />
-                    <p className='font-bold'>Describe your symptoms to get instant guidance.</p>
-                    <p className='text-xs mt-2'>This is not a substitute for professional medical advice.</p>
+                    <p className='font-bold'>Your personal health assistant.</p>
+                    <p className='text-xs mt-2'>Ask about your symptoms, budget, or medical records.</p>
                 </div>
             ) : (
                 chatHistory.map((msg, index) => (
                     <div key={index} className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                          {msg.sender === 'ai' && <Bot className="h-6 w-6 shrink-0 text-accent" />}
-                        <div className={`max-w-xs rounded-lg p-3 ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
+                        <div className={`max-w-md rounded-lg p-3 ${msg.sender === 'user' ? 'bg-primary/80 text-primary-foreground' : 'bg-background'}`}>
                            <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                         </div>
                         {msg.sender === 'user' && <User className="h-6 w-6 shrink-0" />}
@@ -108,13 +117,13 @@ export function PatientAiSheet() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
             control={form.control}
-            name="symptomDescription"
+            name="userQuery"
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>How can I help you today?</FormLabel>
                 <FormControl>
                     <Textarea
-                    placeholder="e.g., I have a high fever, a sore throat, and a headache."
+                    placeholder="e.g., How much have I spent on doctors this month?"
                     {...field}
                     disabled={isLoading}
                     />
@@ -124,7 +133,7 @@ export function PatientAiSheet() {
             )}
             />
             <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : 'Get AI Guidance'}
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : 'Send Message'}
             </Button>
         </form>
         </Form>
