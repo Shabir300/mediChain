@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -88,7 +89,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!isClient || loading || user) {
+  if (!isClient || loading) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
@@ -96,6 +97,18 @@ export default function LoginPage() {
                 <p className="text-muted-foreground">Loading...</p>
             </div>
         </div>
+    );
+  }
+
+  // If user is logged in, useEffect will redirect. Show loading until then.
+  if (user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+              <Logo />
+              <p className="text-muted-foreground">Redirecting...</p>
+          </div>
+      </div>
     );
   }
 
