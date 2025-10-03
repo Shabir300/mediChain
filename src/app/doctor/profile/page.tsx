@@ -66,12 +66,12 @@ export default function ProfileForm() {
   function onSubmit(data: ProfileFormValues) {
     if (!user) return;
     
-    // In a real app, the image would be uploaded to a storage service.
-    // For this demo, we'll just use a placeholder avatar ID.
     addDoctor({
         name: data.fullName,
         specialty: data.specialty,
-        // The rest of the data would be stored in a doctor-specific collection
+        // The other fields like bio, education etc. would be stored
+        // in a more detailed doctor object in a real database.
+        // For this demo, we are only adding the core fields to the list.
     });
 
     toast({
