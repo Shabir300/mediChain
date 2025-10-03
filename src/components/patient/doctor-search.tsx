@@ -121,8 +121,8 @@ export function DoctorSearch() {
             {filteredDoctors.map((doctor) => {
                 const image = getImage(doctor.avatar);
                 return (
-                    <Link href={`/patient/doctors/${doctor.id}`} key={doctor.id} className="block h-full">
-                        <Card className="overflow-hidden h-full transition-all hover:shadow-lg hover:-translate-y-1">
+                    <Link href={`/patient/doctors/${doctor.id}`} key={doctor.id} className="block h-full transition-all hover:shadow-lg hover:-translate-y-1">
+                        <Card className="overflow-hidden h-full">
                             <CardHeader className="p-0">
                                 {image && (
                                     <Image
