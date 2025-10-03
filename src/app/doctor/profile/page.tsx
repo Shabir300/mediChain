@@ -114,17 +114,23 @@ export default function ProfileForm() {
                 avatarUrl = avatarPreview;
             }
         }
+
+        // This is the critical fix. We remove the `profilePicture` field from the form data
+        // because it's not a field we want to save to Firestore and it can be `undefined`.
+        delete data.profilePicture;
         
-        // If a doctor profile already exists, merge new data with existing data.
-        // Otherwise, create a new profile with default values.
-        const dataToSave = doctorProfile 
-            ? {
+        let dataToSave;
+        
+        if (doctorProfile) {
+            // Updating an existing profile
+            dataToSave = {
+                ...doctorProfile,
                 ...data,
                 avatar: avatarUrl,
-                uid: user.uid,
-                email: user.email,
-             }
-            : {
+            };
+        } else {
+            // Creating a new profile
+            dataToSave = {
                 ...data,
                 uid: user.uid,
                 email: user.email,
@@ -132,7 +138,8 @@ export default function ProfileForm() {
                 location: 'In City',
                 availability: 'Online',
                 rating: 4.5,
-             };
+            };
+        }
         
         await setDoc(doctorProfileRef, dataToSave, { merge: true });
 
