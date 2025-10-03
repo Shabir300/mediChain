@@ -1,8 +1,12 @@
 "use client"
 
+import { useState } from "react"
+import Image from "next/image"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { useAuth } from "@/context/auth-context"
+import { useDataStore } from "@/hooks/use-data-store"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,6 +21,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/hooks/use-toast"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Upload } from "lucide-react"
 
 const profileFormSchema = z.object({
   fullName: z
@@ -33,45 +39,101 @@ const profileFormSchema = z.object({
   clinicName: z.string().min(2, "Clinic name is required."),
   address: z.string().min(5, "Address is required."),
   previousExperience: z.string().min(2, "Previous experience is required."),
+  profilePicture: z.any().optional(),
 })
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>
 
-// This can be set to a default value or fetched from a database.
-const defaultValues: Partial<ProfileFormValues> = {
-  fullName: "",
-  specialty: "",
-  bio: "",
-  education: "",
-  clinicName: "",
-  address: "",
-  previousExperience: "",
-}
-
 export default function ProfileForm() {
+  const { user } = useAuth();
+  const { addDoctor } = useDataStore();
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues,
+    defaultValues: {
+      fullName: "",
+      specialty: "",
+      bio: "",
+      education: "",
+      clinicName: "",
+      address: "",
+      previousExperience: "",
+    },
     mode: "onChange",
   })
 
   function onSubmit(data: ProfileFormValues) {
+    if (!user) return;
+    
+    // In a real app, the image would be uploaded to a storage service.
+    // For this demo, we'll just use a placeholder avatar ID.
+    addDoctor({
+        name: data.fullName,
+        specialty: data.specialty,
+        // The rest of the data would be stored in a doctor-specific collection
+    });
+
     toast({
-      title: "Profile Updated",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
+      title: "Profile Saved",
+      description: "Your professional profile has been created and is now visible to patients.",
     })
   }
+
+  const handlePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   return (
     <DashboardLayout requiredRole="doctor">
         <h1 className="font-headline text-3xl md:text-4xl">Complete Your Profile</h1>
-        <p className="text-muted-foreground mt-1">Please fill out your professional details.</p>
+        <p className="text-muted-foreground mt-1">Fill out your professional details to be listed for patients.</p>
+        
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-6">
+            <div className="flex items-center gap-4">
+                 <Avatar className="h-24 w-24">
+                    {avatarPreview && <AvatarImage src={avatarPreview} alt="Profile Preview" />}
+                    <AvatarFallback className="text-3xl">
+                        {form.getValues('fullName')?.charAt(0) || user?.email.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                </Avatar>
+                <FormField
+                    control={form.control}
+                    name="profilePicture"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Profile Picture</FormLabel>
+                        <FormControl>
+                            <div className="relative">
+                                <Button asChild variant="outline">
+                                    <label htmlFor="profile-picture-upload" className="cursor-pointer">
+                                        <Upload className="mr-2 h-4 w-4" />
+                                        Upload Image
+                                    </label>
+                                </Button>
+                                <Input 
+                                    id="profile-picture-upload"
+                                    type="file" 
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    accept="image/*"
+                                    onChange={handlePictureChange}
+                                />
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
             <FormField
             control={form.control}
             name="fullName"
@@ -122,7 +184,7 @@ export default function ProfileForm() {
                 <FormItem>
                 <FormLabel>Education</FormLabel>
                 <FormControl>
-                    <Input placeholder="MD in Cardiology, Stanford University" {...field} />
+                    <Input placeholder="e.g., MD in Cardiology, Stanford University" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -135,7 +197,7 @@ export default function ProfileForm() {
                 <FormItem>
                 <FormLabel>Clinic Name</FormLabel>
                 <FormControl>
-                    <Input placeholder="HeartCare Center" {...field} />
+                    <Input placeholder="e.g., HeartCare Center" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -148,7 +210,7 @@ export default function ProfileForm() {
                 <FormItem>
                 <FormLabel>Address</FormLabel>
                 <FormControl>
-                    <Input placeholder="123 Health St., Medville, USA" {...field} />
+                    <Input placeholder="e.g., 123 Health St., Medville, USA" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -163,7 +225,7 @@ export default function ProfileForm() {
                 <FormLabel>Previous Experience</FormLabel>
                 <FormControl>
                     <Textarea
-                    placeholder="10 years at General Hospital"
+                    placeholder="e.g., 10 years at General Hospital"
                     className="resize-none"
                     {...field}
                     />
@@ -172,7 +234,7 @@ export default function ProfileForm() {
                 </FormItem>
             )}
             />
-            <Button type="submit">Save Profile</Button>
+            <Button type="submit">Save and Go Live</Button>
         </form>
         </Form>
     </DashboardLayout>

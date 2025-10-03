@@ -35,6 +35,7 @@ export interface DataState {
   updateOrderStatus: (orderId: string, status: 'approved' | 'declined') => void;
   updateProductStock: (productId: string, newStock: number) => void;
   addProduct: (product: Omit<Product, 'id' | 'image' | 'description'>) => void;
+  addDoctor: (doctor: Omit<Doctor, 'id' | 'avatar' | 'location' | 'availability' | 'rating'>) => void;
 }
 
 export const useDataStore = create<DataState>()(
@@ -114,7 +115,22 @@ export const useDataStore = create<DataState>()(
                 },
                 ...state.pharmacyProducts,
             ]
-        }))
+        })),
+      
+      addDoctor: (doctor) =>
+        set((state) => ({
+            doctors: [
+                ...state.doctors,
+                {
+                    ...doctor,
+                    id: `doc-${Date.now()}`,
+                    avatar: 'patient-2', // Generic placeholder avatar
+                    location: 'In City',
+                    availability: 'Online',
+                    rating: 4.5, // Default rating
+                },
+            ]
+        })),
     }),
     {
       name: 'curelink-data-storage',
