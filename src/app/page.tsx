@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
 import { getDoc, doc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -37,30 +36,47 @@ export default function LoginPage() {
 
   useEffect(() => {
     const checkUserRole = async () => {
-      if (user && isClient && firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const role = userData.role;
-            switch (role) {
-                case 'patient':
-                router.push('/patient');
-                break;
-                case 'doctor':
-                router.push('/doctor');
-                break;
-                case 'pharmacy':
-                router.push('/pharmacy');
-                break;
-                default:
-                router.push('/');
+      if (user && firestore && isClient) {
+        try {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const role = userData.role;
+                switch (role) {
+                    case 'patient':
+                        router.push('/patient');
+                        break;
+                    case 'doctor':
+                        router.push('/doctor');
+                        break;
+                    case 'pharmacy':
+                        router.push('/pharmacy');
+                        break;
+                    default:
+                        // Stay on login page if role is unknown
+                        break;
+                }
+            } else {
+                // If user exists in Auth but not in Firestore, they can't log in
+                 toast({
+                    variant: 'destructive',
+                    title: 'Login Failed',
+                    description: 'User data not found. Please contact support.',
+                });
             }
+        } catch (error) {
+            console.error("Redirection error:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not retrieve user role.',
+            });
         }
       }
     }
     checkUserRole();
-  }, [user, isClient, firestore, router]);
+  }, [user, firestore, router, isClient, toast]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -72,14 +88,12 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      const userCredential = await signIn(data.email, data.password);
-      if (userCredential?.user) {
-        toast({
+      await signIn(data.email, data.password);
+      toast({
           title: 'Login Successful',
-          description: `Welcome back, ${userCredential.user.email}!`,
-        });
-        // The useEffect will handle redirection
-      }
+          description: `Welcome back! Redirecting...`,
+      });
+      // The useEffect hook will handle the redirection after the user state is updated.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -100,7 +114,7 @@ export default function LoginPage() {
     );
   }
 
-  // If user is logged in, useEffect will redirect. Show loading until then.
+  // If user is logged in, useEffect will redirect. Show a redirecting message.
   if (user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
