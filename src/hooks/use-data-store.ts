@@ -118,7 +118,6 @@ export const useDataStore = create<DataState>()(
       addDoctor: (doctor) =>
         set((state) => ({
           doctors: [
-            ...state.doctors,
             {
               id: `doc-${Date.now()}`,
               name: doctor.fullName,
@@ -133,6 +132,7 @@ export const useDataStore = create<DataState>()(
               availability: 'Online',
               rating: 4.5, // Default rating
             },
+            ...state.doctors,
           ],
         })),
     }),
