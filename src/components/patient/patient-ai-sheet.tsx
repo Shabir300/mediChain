@@ -41,10 +41,7 @@ export function PatientAiSheet() {
     setIsLoading(true);
     const userMessage: ChatMessage = { sender: 'user', text: data.symptomDescription };
     
-    // Combine existing chat history for the prompt
     const historyText = chatHistory.map(msg => `${msg.sender === 'user' ? 'Patient' : 'AI Assistant'}: ${msg.text}`).join('\n');
-    
-    // Combine medical records into a single string for context
     const medicalHistoryText = medicalRecords.map(rec => `${rec.type} - ${rec.fileName} (${rec.uploadDate})`).join('; ');
 
     setChatHistory(prev => [...prev, userMessage]);
@@ -92,7 +89,7 @@ export function PatientAiSheet() {
                     <div key={index} className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                          {msg.sender === 'ai' && <Bot className="h-6 w-6 shrink-0 text-accent" />}
                         <div className={`max-w-xs rounded-lg p-3 ${msg.sender === 'user' ? 'bg-primary/80 text-primary-foreground' : 'bg-background'}`}>
-                           <p className="text-sm">{msg.text}</p>
+                           <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                         </div>
                         {msg.sender === 'user' && <User className="h-6 w-6 shrink-0" />}
                     </div>
