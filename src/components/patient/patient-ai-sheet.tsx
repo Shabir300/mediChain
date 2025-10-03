@@ -24,7 +24,7 @@ interface ChatMessage {
     text: string;
 }
 
-export function SymptomCheckerSheet() {
+export function PatientAiSheet() {
   const { medicalRecords } = useDataStore();
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -73,12 +73,12 @@ export function SymptomCheckerSheet() {
       <SheetTrigger asChild>
         <Button className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg" size="icon">
             <MessageCircle className="h-8 w-8"/>
-            <span className="sr-only">Open AI Symptom Checker</span>
+            <span className="sr-only">Open AI Assistant</span>
         </Button>
       </SheetTrigger>
       <SheetContent className="flex flex-col">
         <SheetHeader>
-          <SheetTitle className="font-headline flex items-center gap-2"><Bot /> AI Symptom Checker</SheetTitle>
+          <SheetTitle className="font-headline flex items-center gap-2"><Bot /> AI Assistant</SheetTitle>
         </SheetHeader>
         <div className="flex-1 space-y-4 overflow-y-auto rounded-md border bg-muted/50 p-4 my-4">
             {chatHistory.length === 0 ? (
@@ -115,7 +115,7 @@ export function SymptomCheckerSheet() {
             name="symptomDescription"
             render={({ field }) => (
                 <FormItem>
-                <FormLabel>How are you feeling today?</FormLabel>
+                <FormLabel>How can I help you today?</FormLabel>
                 <FormControl>
                     <Textarea
                     placeholder="e.g., I have a high fever, a sore throat, and a headache."

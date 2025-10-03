@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect } from 'react';
@@ -49,7 +50,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Logo } from './logo';
 import { useToast } from '@/hooks/use-toast';
-import { SymptomCheckerSheet } from './patient/symptom-checker-sheet';
+import { PatientAiSheet } from './patient/patient-ai-sheet';
 import { DoctorAiSheet } from './doctor/doctor-ai-sheet';
 import { PharmacyAiSheet } from './pharmacy/pharmacy-ai-sheet';
 import { ToastAction } from './ui/toast';
@@ -139,7 +140,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
 
   const renderAiChat = () => {
     switch(user.role) {
-      case 'patient': return <SymptomCheckerSheet />;
+      case 'patient': return <PatientAiSheet />;
       case 'doctor': return <DoctorAiSheet />;
       case 'pharmacy': return <PharmacyAiSheet />;
       default: return null;
