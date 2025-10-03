@@ -17,6 +17,7 @@ import {
   getApp,
 } from 'firebase/app';
 import { firebaseConfig } from './config';
+import { useUser } from './auth/use-user';
 
 // Define the shape of the context value
 interface FirebaseContextValue {
