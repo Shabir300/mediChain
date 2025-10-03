@@ -114,18 +114,29 @@ export function DoctorSearch() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredDoctors.map((doctor) => {
+                const isDataUrl = doctor.avatar && doctor.avatar.startsWith('data:');
                 return (
                     <Link href={`/patient/doctors/${doctor.id}`} key={doctor.id} className="block h-full transition-all hover:shadow-lg hover:-translate-y-1">
                         <Card className="overflow-hidden h-full">
                             <CardHeader className="p-0">
                                 {doctor.avatar ? (
-                                    <Image
-                                        src={doctor.avatar}
-                                        alt={`Portrait of ${doctor.name}`}
-                                        width={400}
-                                        height={400}
-                                        className="w-full h-48 object-cover"
-                                    />
+                                     isDataUrl ? (
+                                        <img
+                                            src={doctor.avatar}
+                                            alt={`Portrait of ${doctor.name}`}
+                                            width={400}
+                                            height={400}
+                                            className="w-full h-48 object-cover"
+                                        />
+                                    ) : (
+                                        <Image
+                                            src={doctor.avatar}
+                                            alt={`Portrait of ${doctor.name}`}
+                                            width={400}
+                                            height={400}
+                                            className="w-full h-48 object-cover"
+                                        />
+                                    )
                                 ) : (
                                     <div className="w-full h-48 bg-muted"></div>
                                 )}
