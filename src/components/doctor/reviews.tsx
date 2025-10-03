@@ -1,9 +1,11 @@
 
 "use client";
 
-import { useDataStore } from '@/hooks/use-data-store';
+import { useAuth, useCollection, useFirestore } from '@/firebase';
+import type { Review } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, StarHalf } from 'lucide-react';
+import { Star, StarHalf, Loader2 } from 'lucide-react';
+import { collection, query } from 'firebase/firestore';
 
 const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
@@ -19,7 +21,11 @@ const renderStars = (rating: number) => {
 };
 
 export function Reviews() {
-  const { reviews } = useDataStore();
+  const { user } = useAuth();
+  const firestore = useFirestore();
+  const reviewsQuery = firestore && user ? query(collection(firestore, `doctors/${user.uid}/reviews`)) : null;
+  const { data: reviews, loading } = useCollection<Review>(reviewsQuery);
+  
   return (
     <Card>
       <CardHeader>
@@ -27,20 +33,28 @@ export function Reviews() {
         <CardDescription>What your patients are saying about you.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          {reviews.map((review) => (
-            <div key={review.id} className="flex flex-col gap-2">
-                <div className='flex justify-between items-center'>
-                    <div className='flex items-center gap-4'>
-                        <p className="font-semibold">{review.patientName}</p>
-                        {renderStars(review.rating)}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{review.date}</p>
-                </div>
-              <p className="text-sm text-muted-foreground italic">"{review.comment}"</p>
+        {loading ? (
+            <div className="flex items-center justify-center h-24">
+                <Loader2 className="h-6 w-6 animate-spin" />
             </div>
-          ))}
-        </div>
+        ) : reviews && reviews.length > 0 ? (
+            <div className="space-y-6">
+            {reviews.map((review) => (
+                <div key={review.id} className="flex flex-col gap-2">
+                    <div className='flex justify-between items-center'>
+                        <div className='flex items-center gap-4'>
+                            <p className="font-semibold">{review.patientName}</p>
+                            {renderStars(review.rating)}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{review.date}</p>
+                    </div>
+                <p className="text-sm text-muted-foreground italic">"{review.comment}"</p>
+                </div>
+            ))}
+            </div>
+        ) : (
+             <p className="text-center py-8 text-muted-foreground">No reviews yet.</p>
+        )}
       </CardContent>
     </Card>
   );

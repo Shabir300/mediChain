@@ -1,24 +1,45 @@
 
 "use client";
-import { useDataStore } from "@/hooks/use-data-store";
 import { useMedicationStore } from "@/hooks/use-medication-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Pill, DollarSign, FileText } from "lucide-react";
+import { Calendar, Pill, DollarSign, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MedicalSummary } from "@/components/patient/medical-summary";
+import { useAuth, useCollection, useFirestore } from "@/firebase";
+import { collection, query } from 'firebase/firestore';
+import type { Appointment, Order, MedicalRecord } from '@/lib/types';
 
 export default function PatientPage() {
+    const { user } = useAuth();
+    const firestore = useFirestore();
     const { medications: currentMedications } = useMedicationStore();
-    const { appointments, orders, medicalRecords } = useDataStore();
-    const recentAppointments = appointments.slice(0, 2);
-    const recentRecords = medicalRecords.slice(0, 2);
+    
+    const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'appointments')) : null);
+    const { data: orders, loading: ordersLoading } = useCollection<Order>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'orders')) : null);
+    const { data: medicalRecords, loading: recordsLoading } = useCollection<MedicalRecord>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'records')) : null);
 
-    const totalDoctorSpending = appointments.reduce((sum, apt) => sum + apt.cost, 0);
-    const totalPharmacySpending = orders.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0);
+    const recentAppointments = appointments?.slice(0, 2) || [];
+    const recentRecords = medicalRecords?.slice(0, 2) || [];
+
+    const totalDoctorSpending = appointments?.reduce((sum, apt) => sum + apt.cost, 0) || 0;
+    const totalPharmacySpending = orders?.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0) || 0;
     const totalSpending = totalDoctorSpending + totalPharmacySpending;
+
+    const isLoading = appointmentsLoading || ordersLoading || recordsLoading;
+
+    if (isLoading) {
+        return (
+            <DashboardLayout requiredRole="patient">
+                <div className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-2">Loading Dashboard...</p>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout requiredRole="patient">
@@ -52,7 +73,7 @@ export default function PatientPage() {
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{appointments.length}</div>
+                        <div className="text-2xl font-bold">{appointments?.length || 0}</div>
                         <p className="text-xs text-muted-foreground">Upcoming and completed</p>
                     </CardContent>
                 </Card>
@@ -62,7 +83,7 @@ export default function PatientPage() {
                         <FileText className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{medicalRecords.length}</div>
+                        <div className="text-2xl font-bold">{medicalRecords?.length || 0}</div>
                         <p className="text-xs text-muted-foreground">Files uploaded</p>
                     </CardContent>
                 </Card>
@@ -129,6 +150,9 @@ export default function PatientPage() {
                                     <Badge variant="secondary">{rec.type}</Badge>
                                 </div>
                             ))}
+                            {recentRecords.length === 0 && (
+                                 <p className="text-center py-4 text-sm text-muted-foreground">No recent records.</p>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

@@ -4,17 +4,37 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { EarningsChart } from "@/components/doctor/earnings-chart";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useDataStore } from "@/hooks/use-data-store";
-import { DollarSign, Stethoscope, Briefcase } from "lucide-react";
+import { useAuth, useCollection, useFirestore } from "@/firebase";
+import type { Appointment } from "@/lib/types";
+import { DollarSign, Stethoscope, Briefcase, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { collection, query, where, collectionGroup } from "firebase/firestore";
 
 export default function DoctorEarningsPage() {
-    const { appointments } = useDataStore();
-    const completedAppointments = appointments.filter(apt => apt.status === 'completed');
+    const { user } = useAuth();
+    const firestore = useFirestore();
+
+    // This is not ideal, but a workaround for querying appointments for a specific doctor across all patients
+    const appointmentsQuery = firestore && user ? query(collectionGroup(firestore, 'appointments'), where('doctorId', '==', user.uid)) : null;
+    const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery);
+    
+    const completedAppointments = appointments?.filter(apt => apt.status === 'completed') || [];
     const totalEarnings = completedAppointments.reduce((acc, apt) => acc + apt.cost, 0);
     const totalAppointments = completedAppointments.length;
     const averagePerAppointment = totalAppointments > 0 ? totalEarnings / totalAppointments : 0;
     const recentTransactions = completedAppointments.slice(0, 5);
+
+    if (loading) {
+        return (
+            <DashboardLayout requiredRole="doctor">
+                <div className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="ml-2">Loading Earnings...</p>
+                </div>
+            </DashboardLayout>
+        );
+    }
+
 
     return (
         <DashboardLayout requiredRole="doctor">
@@ -73,7 +93,7 @@ export default function DoctorEarningsPage() {
                                 <TableBody>
                                     {recentTransactions.map(apt => (
                                         <TableRow key={apt.id}>
-                                            <TableCell className="font-medium">{apt.patientName}</TableCell>
+                                            <TableCell className="font-medium">{apt.patientId.substring(0,6)}...</TableCell>
                                             <TableCell>{apt.date}</TableCell>
                                             <TableCell>
                                                 <Badge variant={apt.type === 'Urgent' ? 'destructive' : 'secondary'}>{apt.type}</Badge>
@@ -96,3 +116,5 @@ export default function DoctorEarningsPage() {
         </DashboardLayout>
     );
 }
+
+    

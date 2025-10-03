@@ -10,8 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { File, Upload, Trash2 } from 'lucide-react';
-import { useDataStore } from '@/hooks/use-data-store';
+import { File, Upload, Trash2, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -24,6 +23,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { useAuth, useFirestore, useCollection } from '@/firebase';
+import { addDoc, collection, deleteDoc, doc } from 'firebase/firestore';
+import type { MedicalRecord } from '@/lib/types';
 
 const recordSchema = z.object({
   file: z.any()
@@ -35,33 +37,64 @@ type RecordFormValues = z.infer<typeof recordSchema>;
 
 export function MedicalRecords() {
     const { toast } = useToast();
-    const { medicalRecords, addMedicalRecord, removeMedicalRecord } = useDataStore();
+    const { user } = useAuth();
+    const firestore = useFirestore();
+    
+    const recordsCollectionRef = firestore && user ? collection(firestore, `patients/${user.uid}/records`) : null;
+    const { data: medicalRecords, loading } = useCollection<MedicalRecord>(recordsCollectionRef);
     
     const form = useForm<RecordFormValues>({
         resolver: zodResolver(recordSchema),
     });
 
-    const onSubmit = (data: RecordFormValues) => {
+    const onSubmit = async (data: RecordFormValues) => {
+        if (!recordsCollectionRef || !user) return;
+
         const fileName = data.file[0].name;
-        addMedicalRecord({
-            fileName: fileName,
-            uploadDate: new Date().toISOString().split('T')[0],
-            type: 'Prescription' // Default type for demo
-        });
-        toast({
-            title: 'File Uploaded',
-            description: `${fileName} has been added to your medical records.`,
-        });
-        form.reset();
+        // In a real app, you would upload the file to Firebase Storage and get a URL.
+        // For now, we'll just store the name.
+        try {
+            await addDoc(recordsCollectionRef, {
+                patientId: user?.uid,
+                fileName: fileName,
+                uploadDate: new Date().toISOString().split('T')[0],
+                type: 'Prescription', // Default type for demo
+                fileUrl: 'https://example.com/placeholder.pdf' // Placeholder URL
+            });
+
+            toast({
+                title: 'File Uploaded',
+                description: `${fileName} has been added to your medical records.`,
+            });
+            form.reset();
+        } catch (error) {
+            console.error("Error uploading record: ", error);
+             toast({
+                variant: "destructive",
+                title: 'Upload Failed',
+                description: `Could not upload ${fileName}.`,
+            });
+        }
     };
 
-    const handleDelete = (recordId: string) => {
-        removeMedicalRecord(recordId);
-        toast({
-            variant: "destructive",
-            title: 'Record Deleted',
-            description: `The medical record has been successfully removed.`,
-        });
+    const handleDelete = async (recordId: string) => {
+        if (!firestore || !user) return;
+        
+        try {
+            await deleteDoc(doc(firestore, `patients/${user.uid}/records`, recordId));
+            toast({
+                variant: "destructive",
+                title: 'Record Deleted',
+                description: `The medical record has been successfully removed.`,
+            });
+        } catch (error) {
+            console.error("Error deleting record: ", error);
+             toast({
+                variant: "destructive",
+                title: 'Delete Failed',
+                description: `Could not delete the record.`,
+            });
+        }
     }
 
     return (
@@ -91,8 +124,9 @@ export function MedicalRecords() {
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" className="w-full">
-                                <Upload className="mr-2 h-4 w-4" /> Upload Record
+                            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                                {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4" />}
+                                 Upload Record
                             </Button>
                         </form>
                     </Form>
@@ -103,7 +137,11 @@ export function MedicalRecords() {
                     <CardTitle className="font-headline">Uploaded Files</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {medicalRecords.length > 0 ? (
+                    {loading ? (
+                        <div className="flex items-center justify-center h-40">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : medicalRecords && medicalRecords.length > 0 ? (
                         <ul className="space-y-2">
                             {medicalRecords.map((file) => (
                                 <li key={file.id} className="flex items-center justify-between text-sm p-3 bg-muted/50 rounded-md">

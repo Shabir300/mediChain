@@ -1,17 +1,35 @@
 
 "use client";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { useDataStore } from "@/hooks/use-data-store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, ShoppingCart, Stethoscope } from "lucide-react";
+import { DollarSign, ShoppingCart, Stethoscope, Loader2 } from "lucide-react";
+import { useAuth, useCollection, useFirestore } from "@/firebase";
+import { collection, query } from 'firebase/firestore';
+import type { Appointment, Order } from '@/lib/types';
 
 export default function BudgetPage() {
-    const { appointments, orders } = useDataStore();
-    const totalDoctorSpending = appointments.reduce((sum, apt) => sum + apt.cost, 0);
-    const totalPharmacySpending = orders.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0);
+    const { user } = useAuth();
+    const firestore = useFirestore();
+
+    const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'appointments')) : null);
+    const { data: orders, loading: ordersLoading } = useCollection<Order>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'orders')) : null);
+
+    const totalDoctorSpending = appointments?.reduce((sum, apt) => sum + apt.cost, 0) || 0;
+    const totalPharmacySpending = orders?.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0) || 0;
     const totalSpending = totalDoctorSpending + totalPharmacySpending;
+
+    if (appointmentsLoading || ordersLoading) {
+         return (
+            <DashboardLayout requiredRole="patient">
+                <div className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="ml-2">Loading Budget...</p>
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout requiredRole="patient">
@@ -68,7 +86,7 @@ export default function BudgetPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {appointments.map(apt => (
+                            {appointments?.map(apt => (
                                 <TableRow key={apt.id}>
                                     <TableCell className="font-medium">{apt.doctorName}</TableCell>
                                     <TableCell>{apt.date}</TableCell>
@@ -84,6 +102,9 @@ export default function BudgetPage() {
                             ))}
                         </TableBody>
                     </Table>
+                     {(!appointments || appointments.length === 0) && (
+                        <p className="text-center py-8 text-muted-foreground">No appointment history found.</p>
+                    )}
                 </CardContent>
             </Card>
         </DashboardLayout>

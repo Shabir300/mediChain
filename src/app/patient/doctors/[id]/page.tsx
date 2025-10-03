@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
-import { useDataStore } from '@/hooks/use-data-store';
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Star, Clock, Stethoscope, GraduationCap, Building, MapPin, Briefcase } from 'lucide-react';
+import { Star, Clock, Stethoscope, GraduationCap, Building, MapPin, Briefcase, Loader2 } from 'lucide-react';
+import { useAuth, useCollection, useDoc, useFirestore } from '@/firebase';
+import { collection, doc, addDoc, query, where, collectionGroup } from 'firebase/firestore';
+import type { Appointment, Doctor } from '@/lib/types';
+
 
 // Mock time slots for a day
 const timeSlots = [
@@ -32,7 +35,16 @@ const timeSlots = [
 export default function DoctorProfilePage() {
     const params = useParams();
     const doctorId = params.id as string;
-    const { doctors, appointments, addAppointment } = useDataStore();
+    const { user } = useAuth();
+    const firestore = useFirestore();
+
+    const doctorRef = firestore && doctorId ? doc(firestore, "doctors", doctorId) : null;
+    const { data: doctor, loading: doctorLoading } = useDoc<Doctor>(doctorRef);
+
+    // This is not ideal, but a workaround for querying appointments for a specific doctor across all patients
+    const appointmentsQuery = firestore && doctorId ? query(collectionGroup(firestore, 'appointments'), where('doctorId', '==', doctorId)) : null;
+    const { data: appointments } = useCollection<Appointment>(appointmentsQuery);
+
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isUrgent, setIsUrgent] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -40,15 +52,23 @@ export default function DoctorProfilePage() {
 
     const { toast } = useToast();
     
-    const doctor = doctors.find(d => d.id === doctorId);
+    if (doctorLoading) {
+        return (
+            <DashboardLayout requiredRole='patient'>
+                <div className="flex h-64 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <p className="ml-2">Loading Doctor Profile...</p>
+                </div>
+            </DashboardLayout>
+        )
+    }
 
     if (!doctor) {
         notFound();
     }
     
-
-    const handleBookAppointment = () => {
-        if (!doctor || !selectedDate || !selectedTime) {
+    const handleBookAppointment = async () => {
+        if (!doctor || !selectedDate || !selectedTime || !user || !firestore) {
              toast({
                 variant: 'destructive',
                 title: 'Booking Failed',
@@ -56,33 +76,45 @@ export default function DoctorProfilePage() {
             });
             return;
         }
-        
-        addAppointment({
-            doctorName: doctor.name,
-            doctorId: doctor.id,
-            date: format(selectedDate, 'yyyy-MM-dd'),
-            time: selectedTime,
-            type: isUrgent ? 'Urgent' : 'Normal',
-            cost: isUrgent ? 3000 : 1500,
-        });
-        
-        toast({
-            title: 'Appointment Booked!',
-            description: `Your ${isUrgent ? 'urgent' : 'normal'} appointment with ${doctor.name} on ${format(selectedDate, 'PPP')} at ${selectedTime} has been confirmed.`,
-        });
 
-        setIsBookingOpen(false);
-        setIsUrgent(false);
-        setSelectedDate(new Date());
-        setSelectedTime(null);
+        try {
+            await addDoc(collection(firestore, `patients/${user.uid}/appointments`), {
+                patientId: user.uid,
+                patientName: user.displayName,
+                doctorName: doctor.fullName,
+                doctorId: doctor.uid,
+                date: format(selectedDate, 'yyyy-MM-dd'),
+                time: selectedTime,
+                type: isUrgent ? 'Urgent' : 'Normal',
+                status: 'booked',
+                cost: isUrgent ? 3000 : 1500,
+            });
+
+            toast({
+                title: 'Appointment Booked!',
+                description: `Your ${isUrgent ? 'urgent' : 'normal'} appointment with ${doctor.fullName} on ${format(selectedDate, 'PPP')} at ${selectedTime} has been confirmed.`,
+            });
+
+            setIsBookingOpen(false);
+            setIsUrgent(false);
+            setSelectedDate(new Date());
+            setSelectedTime(null);
+        } catch (error) {
+            console.error("Error booking appointment: ", error);
+             toast({
+                variant: 'destructive',
+                title: 'Booking Error',
+                description: 'Could not book the appointment. Please try again.',
+            });
+        }
     }
 
     const bookedSlotsForDay = useMemo(() => {
-        if (!doctor || !selectedDate) return [];
+        if (!appointments || !selectedDate) return [];
         return appointments
-            .filter(apt => apt.doctorId === doctor.id && format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
+            .filter(apt => format(new Date(apt.date), 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd'))
             .map(apt => apt.time);
-    }, [doctor, selectedDate, appointments]);
+    }, [selectedDate, appointments]);
 
     const handleCloseDialog = () => {
         setIsBookingOpen(false);
@@ -99,16 +131,18 @@ export default function DoctorProfilePage() {
                         {doctor.avatar ? (
                             <Image
                                 src={doctor.avatar}
-                                alt={`Portrait of ${doctor.name}`}
+                                alt={`Portrait of ${doctor.fullName}`}
                                 width={400}
                                 height={400}
                                 className="w-full h-80 object-cover"
                             />
                         ) : (
-                            <div className="w-full h-80 bg-muted"></div>
+                            <div className="w-full h-80 bg-muted flex items-center justify-center">
+                                <Stethoscope className="w-16 h-16 text-muted-foreground"/>
+                            </div>
                         )}
                         <CardHeader>
-                            <CardTitle className="text-2xl font-headline">{doctor.name}</CardTitle>
+                            <CardTitle className="text-2xl font-headline">{doctor.fullName}</CardTitle>
                             <CardDescription className='flex items-center gap-2'><Stethoscope className='h-4 w-4'/>{doctor.specialty}</CardDescription>
                         </CardHeader>
                         <CardFooter>
@@ -122,7 +156,7 @@ export default function DoctorProfilePage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className='font-headline'>Doctor's Bio</CardTitle>
-                            <CardDescription>Learn more about {doctor.name}'s background and expertise.</CardDescription>
+                            <CardDescription>Learn more about {doctor.fullName}'s background and expertise.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 text-sm">
                            <p className="text-muted-foreground">{doctor.bio}</p>
@@ -162,7 +196,7 @@ export default function DoctorProfilePage() {
             <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
                 <DialogContent className="max-w-4xl">
                     <DialogHeader>
-                        <DialogTitle className='font-headline'>Book Appointment with {doctor?.name}</DialogTitle>
+                        <DialogTitle className='font-headline'>Book Appointment with {doctor?.fullName}</DialogTitle>
                         <DialogDescription>
                             Select a date and an available time slot.
                         </DialogDescription>
@@ -211,3 +245,5 @@ export default function DoctorProfilePage() {
         </DashboardLayout>
     );
 }
+
+    

@@ -13,33 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
-
-// Corresponds to the Firestore Product entity
-export interface Product {
-    id: string;
-    pharmacyId: string;
-    pharmacyName: string;
-    name: string;
-    description: string;
-    price: number;
-    stock: number;
-    images: string[];
-}
-
-// Corresponds to the Firestore Order entity
-export interface Order {
-    id: string;
-    patientId: string;
-    pharmacyId: string;
-    items: {
-        productId: string;
-        name: string;
-        quantity: number;
-    }[];
-    total: number;
-    status: 'pending' | 'approved' | 'declined';
-    date: string;
-}
+import type { Product, Order } from '@/lib/types';
 
 
 interface CartItem extends Product {
@@ -207,6 +181,9 @@ export function MyOrders() {
                                 </Card>
                             )
                         })}
+                         {filteredProducts?.length === 0 && (
+                            <p className="text-center py-8 text-muted-foreground col-span-full">No products match your search.</p>
+                        )}
                     </div>
                 )}
                 </CardContent>
@@ -293,5 +270,6 @@ export function MyOrders() {
     </div>
   );
 }
+    
 
     

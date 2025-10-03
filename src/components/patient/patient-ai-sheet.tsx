@@ -11,8 +11,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, MessageCircle, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useDataStore } from '@/hooks/use-data-store';
 import { useMedicationStore } from '@/hooks/use-medication-store';
+import { useAuth, useCollection, useFirestore } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Appointment, Order, MedicalRecord } from '@/lib/types';
 
 const querySchema = z.object({
   userQuery: z.string().min(1, { message: 'Please enter a message.' }),
@@ -26,7 +28,13 @@ interface ChatMessage {
 }
 
 export function PatientAiSheet() {
-  const { medicalRecords, appointments, orders } = useDataStore();
+  const { user } = useAuth();
+  const firestore = useFirestore();
+
+  const { data: medicalRecords } = useCollection<MedicalRecord>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'records')) : null);
+  const { data: appointments } = useCollection<Appointment>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'appointments')) : null);
+  const { data: orders } = useCollection<Order>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'orders')) : null);
+
   const { medications } = useMedicationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -44,10 +52,10 @@ export function PatientAiSheet() {
     const userMessage: ChatMessage = { sender: 'user', text: data.userQuery };
     
     const currentChatHistory = chatHistory.map(msg => `${msg.sender === 'user' ? 'Patient' : 'AI Assistant'}: ${msg.text}`).join('\n');
-    const medicalHistoryText = medicalRecords.map(rec => rec.fileName).join(', ');
-    const appointmentsText = appointments.map(a => `${a.date} with ${a.doctorName}`).join(', ');
+    const medicalHistoryText = medicalRecords?.map(rec => rec.fileName).join(', ') || '';
+    const appointmentsText = appointments?.map(a => `${a.date} with ${a.doctorName}`).join(', ') || '';
     const medicationsText = medications.map(m => `${m.name} at ${m.time}`).join(', ');
-    const ordersText = orders.map(o => `Order on ${o.date} for PKR ${o.total}`).join(', ');
+    const ordersText = orders?.map(o => `Order on ${o.date} for PKR ${o.total}`).join(', ') || '';
 
 
     setChatHistory(prev => [...prev, userMessage]);

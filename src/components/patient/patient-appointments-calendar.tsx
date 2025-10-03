@@ -2,20 +2,24 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Appointment } from '@/lib/data';
-import { useDataStore } from '@/hooks/use-data-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { useAuth, useCollection, useFirestore } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import type { Appointment } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
+
 
 export function PatientAppointmentsCalendar() {
-    const { appointments } = useDataStore();
+    const { user } = useAuth();
+    const firestore = useFirestore();
+    const { data: appointments, loading } = useCollection<Appointment>(firestore && user ? query(collection(firestore, `patients/${user.uid}/appointments`)) : null);
     const [date, setDate] = useState<Date | undefined>(new Date());
     
-    // In a real app, you would fetch appointments for the logged-in patient.
-    // For this demo, we use all appointments.
     const appointmentsByDate = useMemo(() => {
+        if (!appointments) return {};
         const grouped: { [key: string]: Appointment[] } = {};
         appointments.forEach(apt => {
             const day = format(new Date(apt.date), 'yyyy-MM-dd');
@@ -43,6 +47,14 @@ export function PatientAppointmentsCalendar() {
 
     const selectedDayStr = date ? format(date, 'yyyy-MM-dd') : '';
     const selectedDayAppointments = appointmentsByDate[selectedDayStr] || [];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>

@@ -2,22 +2,30 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { Appointment } from '@/lib/data';
-import { useDataStore } from '@/hooks/use-data-store';
+import type { Appointment } from '@/lib/types';
+import { useAuth, useCollection, useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
+import { collectionGroup, query, where } from 'firebase/firestore';
+import { Loader2 } from 'lucide-react';
 
 type View = 'all' | 'urgent' | 'normal';
 
 export function MeetingsCalendar() {
-    const { appointments } = useDataStore();
+    const { user } = useAuth();
+    const firestore = useFirestore();
+
+    const appointmentsQuery = firestore && user ? query(collectionGroup(firestore, 'appointments'), where('doctorId', '==', user.uid)) : null;
+    const { data: appointments, loading } = useCollection<Appointment>(appointmentsQuery);
+    
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [view, setView] = useState<View>('all');
 
     const filteredAppointments = useMemo(() => {
+        if (!appointments) return [];
         return appointments.filter(apt => {
             if (view === 'all') return true;
             return apt.type.toLowerCase() === view;
@@ -47,7 +55,7 @@ export function MeetingsCalendar() {
                     <div className='mt-1 space-y-0.5'>
                         {dayAppointments.slice(0, 2).map(apt => (
                             <div key={apt.id} className={`w-full rounded-sm px-1 text-xs ${apt.type === 'Urgent' ? 'bg-destructive/80 text-destructive-foreground' : 'bg-secondary'}`}>
-                                {apt.patientName.split(' ')[0]}
+                                {apt.patientName?.split(' ')[0] || `Patient`}
                             </div>
                         ))}
                          {dayAppointments.length > 2 && (
@@ -76,15 +84,21 @@ export function MeetingsCalendar() {
                         </Tabs>
                     </CardHeader>
                     <CardContent>
-                         <Calendar
-                            mode="single"
-                            selected={date}
-                            onSelect={setDate}
-                            className="p-0 [&_td]:h-24 [&_td]:align-top"
-                            components={{
-                                Day: (props) => <DayCell date={props.date} />
-                            }}
-                         />
+                        {loading ? (
+                            <div className="flex items-center justify-center h-96">
+                                <Loader2 className="h-8 w-8 animate-spin" />
+                            </div>
+                        ) : (
+                            <Calendar
+                                mode="single"
+                                selected={date}
+                                onSelect={setDate}
+                                className="p-0 [&_td]:h-24 [&_td]:align-top"
+                                components={{
+                                    Day: (props) => <DayCell date={props.date} />
+                                }}
+                            />
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -96,12 +110,16 @@ export function MeetingsCalendar() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {selectedDayAppointments.length > 0 ? (
+                        {loading ? (
+                             <div className="flex items-center justify-center h-40">
+                                <Loader2 className="h-6 w-6 animate-spin" />
+                            </div>
+                        ) : selectedDayAppointments.length > 0 ? (
                              <div className="space-y-4">
                                 {selectedDayAppointments.map(apt => (
                                     <Card key={apt.id}>
                                         <CardContent className="p-3">
-                                            <p className="font-semibold">{apt.patientName}</p>
+                                            <p className="font-semibold">{apt.patientName || `Patient ${apt.patientId.substring(0,5)}`}</p>
                                             <p className="text-sm text-muted-foreground">{apt.time}</p>
                                             <Badge variant={apt.type === 'Urgent' ? 'destructive' : 'secondary'} className='mt-1'>{apt.type}</Badge>
                                         </CardContent>
@@ -117,3 +135,5 @@ export function MeetingsCalendar() {
         </div>
     );
 }
+
+    

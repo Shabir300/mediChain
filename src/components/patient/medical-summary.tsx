@@ -4,7 +4,6 @@
 import { useEffect, useState, useRef } from "react";
 import jsPDF from "jspdf";
 import { getMedicalSummary, MedicalSummaryOutput } from "@/ai/flows/generate-medical-summary";
-import { useDataStore } from "@/hooks/use-data-store";
 import { useMedicationStore } from "@/hooks/use-medication-store";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +11,18 @@ import { Loader2, Calendar, HeartPulse, Pilcrow, Download } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth, useCollection, useFirestore } from "@/firebase";
+import { collection, query } from 'firebase/firestore';
+import type { Appointment, MedicalRecord } from '@/lib/types';
 
 export function MedicalSummary() {
+    const { user } = useAuth();
+    const firestore = useFirestore();
     const { medications } = useMedicationStore();
-    const { appointments, medicalRecords } = useDataStore();
+    
+    const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'appointments')) : null);
+    const { data: medicalRecords, loading: recordsLoading } = useCollection<MedicalRecord>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'records')) : null);
+
     const [summary, setSummary] = useState<MedicalSummaryOutput | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -24,19 +31,21 @@ export function MedicalSummary() {
     const { toast } = useToast();
     
     useEffect(() => {
+        if (appointmentsLoading || recordsLoading) return;
+
         const generateSummary = async () => {
             setIsLoading(true);
             setError(null);
             
-            const recordsText = medicalRecords.map(r => `${r.type} (${r.uploadDate}): ${r.fileName}`).join('\n');
-            const appointmentsText = appointments.map(a => `${a.date} with ${a.doctorName} (${a.type})`).join('\n');
-            const medicationsText = medications.map(m => `${m.name} at ${m.time}`).join('\n');
+            const recordsText = medicalRecords?.map(r => `${r.type} (${r.uploadDate}): ${r.fileName}`).join('\n') || "No records available.";
+            const appointmentsText = appointments?.map(a => `${a.date} with ${a.doctorName} (${a.type})`).join('\n') || "No appointments scheduled.";
+            const medicationsText = medications.map(m => `${m.name} at ${m.time}`).join('\n') || "No medications prescribed.";
 
             try {
                 const result = await getMedicalSummary({
-                    records: recordsText || "No records available.",
-                    appointments: appointmentsText || "No appointments scheduled.",
-                    medications: medicationsText || "No medications prescribed."
+                    records: recordsText,
+                    appointments: appointmentsText,
+                    medications: medicationsText
                 });
                 setSummary(result);
             } catch (err) {
@@ -48,7 +57,7 @@ export function MedicalSummary() {
         };
 
         generateSummary();
-    }, [medications, appointments, medicalRecords]);
+    }, [medications, appointments, medicalRecords, appointmentsLoading, recordsLoading]);
 
     const handleDownloadPdf = () => {
         if (!summary) return;
@@ -118,8 +127,9 @@ export function MedicalSummary() {
         }
     }
 
+    const showLoading = isLoading || appointmentsLoading || recordsLoading;
 
-    if (isLoading) {
+    if (showLoading) {
         return (
             <Card>
                 <CardHeader>

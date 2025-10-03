@@ -2,33 +2,26 @@
 "use client";
 
 import { useAuth, useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collectionGroup, query, where, doc, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import type { Order } from '../patient/my-orders';
+import type { Order } from '@/lib/types';
 
 export function OrderList() {
     const { user } = useAuth();
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    // Query for all orders across all patients where pharmacyId matches the current user's UID.
+    // Query for all orders across all patients where pharmacyId matches the current user's UID and status is pending.
     const ordersQuery = firestore && user 
         ? query(collectionGroup(firestore, 'orders'), where('pharmacyId', '==', user.uid), where('status', '==', 'pending'))
         : null;
         
-    // A trick to get around collectionGroup queries needing a composite index.
-    // This is not ideal for production but works for this MVP.
-    // A better approach would be to create a root-level 'orders' collection.
-    const allPatientOrdersQuery = firestore ? query(collectionGroup(firestore, 'orders')) : null;
-    const { data: allOrders, loading: ordersLoading } = useCollection<Order>(allPatientOrdersQuery);
-
-    const pendingOrders = allOrders?.filter(o => o.pharmacyId === user?.uid && o.status === 'pending');
-
+    const { data: pendingOrders, loading: ordersLoading } = useCollection<Order>(ordersQuery);
 
     const handleUpdateStatus = async (order: Order, status: 'approved' | 'declined') => {
         if (!firestore) return;
@@ -116,11 +109,6 @@ export function OrderList() {
             </CardContent>
         </Card>
     );
-}
-
-// Helper for collectionGroup query - requires an index in Firestore
-function collectionGroup(firestore: any, collectionId: string) {
-    return (window as any).firebase.firestore.collectionGroup(firestore, collectionId);
 }
 
     
