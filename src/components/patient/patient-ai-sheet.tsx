@@ -9,7 +9,7 @@ import { symptomChecker } from '@/ai/flows/ai-symptom-checker';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, Loader2, MessageCircle, User, X } from 'lucide-react';
+import { Bot, Loader2, MessageCircle, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useDataStore } from '@/hooks/use-data-store';
 
@@ -72,7 +72,7 @@ export function PatientAiSheet() {
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg" size="icon">
-            <MessageCircle className="h-8 w-8"/>
+            <Bot className="h-8 w-8"/>
             <span className="sr-only">Open AI Assistant</span>
         </Button>
       </SheetTrigger>
