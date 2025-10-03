@@ -75,6 +75,7 @@ export default function ProfileForm() {
         clinicName: data.clinicName,
         address: data.address,
         previousExperience: data.previousExperience,
+        avatar: avatarPreview || '',
     });
 
     toast({
@@ -187,7 +188,7 @@ export default function ProfileForm() {
                 <FormItem>
                 <FormLabel>Education</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g., MD in Cardiology, Stanford University" {...field} />
+                    <Input placeholder="MD in Cardiology, Stanford University" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -200,7 +201,7 @@ export default function ProfileForm() {
                 <FormItem>
                 <FormLabel>Clinic Name</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g., HeartCare Center" {...field} />
+                    <Input placeholder="HeartCare Center" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -213,7 +214,7 @@ export default function ProfileForm() {
                 <FormItem>
                 <FormLabel>Address</FormLabel>
                 <FormControl>
-                    <Input placeholder="e.g., 123 Health St., Medville, USA" {...field} />
+                    <Input placeholder="123 Health St., Medville, USA" {...field} />
                 </FormControl>
                 <FormMessage />
                 </FormItem>
@@ -228,7 +229,7 @@ export default function ProfileForm() {
                 <FormLabel>Previous Experience</FormLabel>
                 <FormControl>
                     <Textarea
-                    placeholder="e.g., 10 years at General Hospital"
+                    placeholder="10 years at General Hospital"
                     className="resize-none"
                     {...field}
                     />

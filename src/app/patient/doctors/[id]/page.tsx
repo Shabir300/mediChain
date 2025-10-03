@@ -6,7 +6,6 @@ import { notFound, useParams } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Doctor } from '@/lib/data';
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +22,7 @@ import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Star, Clock, Stethoscope, GraduationCap, Building, MapPin, Briefcase } from 'lucide-react';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 // Mock time slots for a day
 const timeSlots = [
@@ -48,7 +48,6 @@ export default function DoctorProfilePage() {
         notFound();
     }
     
-    const image = PlaceHolderImages.find(img => img.id === doctor.avatar);
 
     const handleBookAppointment = () => {
         if (!doctor || !selectedDate || !selectedTime) {
@@ -99,16 +98,15 @@ export default function DoctorProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className='lg:col-span-1'>
                     <Card className="overflow-hidden">
-                        {image && (
+                        
                             <Image
-                                src={image.imageUrl}
-                                alt={image.description}
-                                data-ai-hint={image.imageHint}
+                                src={doctor.avatar}
+                                alt={`Portrait of ${doctor.name}`}
                                 width={400}
                                 height={400}
                                 className="w-full h-80 object-cover"
                             />
-                        )}
+                        
                         <CardHeader>
                             <div className='flex justify-between items-start'>
                                 <CardTitle className="text-2xl font-headline">{doctor.name}</CardTitle>

@@ -6,12 +6,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Doctor } from '@/lib/data';
 import { useDataStore } from '@/hooks/use-data-store';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Clock, Star } from 'lucide-react';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type FilterType = 'all' | 'nearby' | 'in-city';
 
@@ -119,21 +119,17 @@ export function DoctorSearch() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredDoctors.map((doctor) => {
-                const image = getImage(doctor.avatar);
                 return (
                     <Link href={`/patient/doctors/${doctor.id}`} key={doctor.id} className="block h-full transition-all hover:shadow-lg hover:-translate-y-1">
                         <Card className="overflow-hidden h-full">
                             <CardHeader className="p-0">
-                                {image && (
-                                    <Image
-                                        src={image.imageUrl}
-                                        alt={image.description}
-                                        data-ai-hint={image.imageHint}
-                                        width={400}
-                                        height={400}
-                                        className="w-full h-48 object-cover"
-                                    />
-                                )}
+                                <Image
+                                    src={doctor.avatar}
+                                    alt={`Portrait of ${doctor.name}`}
+                                    width={400}
+                                    height={400}
+                                    className="w-full h-48 object-cover"
+                                />
                             </CardHeader>
                             <CardContent className="p-4">
                                     <div className='flex justify-between items-start'>

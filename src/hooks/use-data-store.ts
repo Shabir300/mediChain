@@ -35,7 +35,7 @@ export interface DataState {
   updateOrderStatus: (orderId: string, status: 'approved' | 'declined') => void;
   updateProductStock: (productId: string, newStock: number) => void;
   addProduct: (product: Omit<Product, 'id' | 'image' | 'description'>) => void;
-  addDoctor: (doctor: Omit<Doctor, 'id' | 'avatar' | 'location' | 'availability' | 'rating' | 'name'> & { fullName: string }) => void;
+  addDoctor: (doctor: Omit<Doctor, 'id' | 'location' | 'availability' | 'rating' | 'name'> & { fullName: string }) => void;
 }
 
 export const useDataStore = create<DataState>()(
@@ -130,7 +130,7 @@ export const useDataStore = create<DataState>()(
               clinicName: doctor.clinicName,
               address: doctor.address,
               previousExperience: doctor.previousExperience,
-              avatar: 'patient-2', // Generic placeholder avatar
+              avatar: doctor.avatar,
               location: 'In City',
               availability: 'Online',
               rating: 4.5, // Default rating
