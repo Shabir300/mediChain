@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -52,7 +53,7 @@ const prompt = ai.definePrompt({
   2.  Based on the intent, decide if you need to use a tool.
       - If they ask about **symptoms** (e.g., "I have a headache"), determine if a specialist is needed and use the 'findAvailableDoctors' tool if necessary.
       - If they ask about **budget, cost, or spending**, use the 'getBudgetAndSpending' tool.
-      - If they ask about their **current medications**, use the 'getActiveMedications' tool.
+      - If they ask about their **current medications**, use the 'getActiveMedications' tool and refer to the 'Active Medications' context provided above.
       - If they ask a question about a **specific medical record** (e.g., "what were my blood test results?"), use the 'getMedicalRecordSummary' tool with the relevant filename.
       - If they say 'hi' or make a general statement, provide a friendly greeting and ask how you can help. DO NOT default to asking for symptoms unless they mention them.
   3.  Synthesize the information from the tool's output (if any) and the user's query to formulate a helpful response.
@@ -69,7 +70,14 @@ const patientAiAssistantFlow = ai.defineFlow(
     outputSchema: PatientAiAssistantOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    // For the getActiveMedications tool to work, we must provide the data in the prompt.
+    // The tool itself doesn't have access to the client-side store.
+    const fullPromptInput = {
+        ...input,
+        medications: input.medications || "No active medications."
+    };
+
+    const {output} = await prompt(fullPromptInput);
     return {
       response: output?.response || "I'm sorry, I was unable to process your request at this time. Please try again later.",
     }

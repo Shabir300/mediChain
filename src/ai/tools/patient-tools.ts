@@ -2,8 +2,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { doctors, appointments as allAppointments, orders as allOrders } from '@/lib/data';
-import { useMedicationStore } from '@/hooks/use-medication-store';
-
 
 export const findAvailableDoctors = ai.defineTool(
   {
@@ -59,11 +57,11 @@ export const getActiveMedications = ai.defineTool(
         }))
     },
     async () => {
-        // Zustand hooks can't be used in server-side tools directly.
-        // We will read from the initial state for this demo.
-        // In a real app, this data would come from a database.
-         const { medications } = useMedicationStore.getState();
-         return medications;
+        // This tool now depends on the flow passing the medication data in the context.
+        // It's a placeholder to demonstrate the tool being available.
+        // The actual data will be injected into the prompt from the client.
+        // In a real app, this would query a database.
+        return Promise.resolve([]);
     }
 );
 
