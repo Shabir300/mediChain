@@ -31,6 +31,7 @@ export interface DataState {
   addAppointment: (appointment: Omit<Appointment, 'id' | 'status' | 'patientName'>) => void;
   addOrder: (order: Omit<Order, 'id' | 'patientName'>) => void;
   addMedicalRecord: (record: Omit<MedicalRecord, 'id'>) => void;
+  removeMedicalRecord: (recordId: string) => void;
   updateOrderStatus: (orderId: string, status: 'approved' | 'declined') => void;
   updateProductStock: (productId: string, newStock: number) => void;
   addProduct: (product: Omit<Product, 'id' | 'image' | 'description'>) => void;
@@ -81,6 +82,11 @@ export const useDataStore = create<DataState>()(
                 },
                 ...state.medicalRecords,
             ]
+        })),
+    
+      removeMedicalRecord: (recordId) =>
+        set((state) => ({
+            medicalRecords: state.medicalRecords.filter(record => record.id !== recordId)
         })),
 
       updateOrderStatus: (orderId, status) =>

@@ -10,9 +10,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { File, Upload } from 'lucide-react';
+import { File, Upload, Trash2 } from 'lucide-react';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const recordSchema = z.object({
   file: z.any()
@@ -24,7 +35,7 @@ type RecordFormValues = z.infer<typeof recordSchema>;
 
 export function MedicalRecords() {
     const { toast } = useToast();
-    const { medicalRecords, addMedicalRecord } = useDataStore();
+    const { medicalRecords, addMedicalRecord, removeMedicalRecord } = useDataStore();
     
     const form = useForm<RecordFormValues>({
         resolver: zodResolver(recordSchema),
@@ -43,6 +54,15 @@ export function MedicalRecords() {
         });
         form.reset();
     };
+
+    const handleDelete = (recordId: string) => {
+        removeMedicalRecord(recordId);
+        toast({
+            variant: "destructive",
+            title: 'Record Deleted',
+            description: `The medical record has been successfully removed.`,
+        });
+    }
 
     return (
         <div className="grid gap-8 md:grid-cols-2">
@@ -87,14 +107,37 @@ export function MedicalRecords() {
                         <ul className="space-y-2">
                             {medicalRecords.map((file) => (
                                 <li key={file.id} className="flex items-center justify-between text-sm p-3 bg-muted/50 rounded-md">
-                                    <div className='flex items-center'>
-                                        <File className="h-4 w-4 mr-3 text-muted-foreground" />
+                                    <div className='flex items-center gap-3'>
+                                        <File className="h-4 w-4 text-muted-foreground" />
                                         <div>
                                             <p className='font-medium'>{file.fileName}</p>
                                             <p className='text-xs text-muted-foreground'>Uploaded: {file.uploadDate}</p>
                                         </div>
                                     </div>
-                                    <Badge variant="secondary">{file.type}</Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="secondary">{file.type}</Badge>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                                    <Trash2 className="h-4 w-4"/>
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This action cannot be undone. This will permanently delete the medical record file.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(file.id)}>
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
                                 </li>
                             ))}
                         </ul>
