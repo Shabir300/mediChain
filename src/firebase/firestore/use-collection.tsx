@@ -1,13 +1,9 @@
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   onSnapshot,
-  query,
-  collection,
-  where,
-  type DocumentData,
   type Query,
 } from 'firebase/firestore';
 
@@ -23,16 +19,18 @@ export function useCollection<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const qRef = useRef(q);
+  const queryKey = q ? q.toString() : 'null';
 
   useEffect(() => {
-    if (!qRef.current) {
+    if (!q) {
+        setData([]);
         setLoading(false);
         return;
     }
+    setLoading(true);
 
     const unsubscribe = onSnapshot(
-      qRef.current,
+      q,
       (snapshot) => {
         const docs = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -49,7 +47,7 @@ export function useCollection<T>(
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [queryKey]); // Re-run effect when the query string representation changes
 
   return { data, loading, error };
 }

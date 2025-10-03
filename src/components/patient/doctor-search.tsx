@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,7 +19,6 @@ export function DoctorSearch() {
   const firestore = useFirestore();
   const { data: doctors, loading: doctorsLoading } = useCollection<Doctor>(firestore ? query(collection(firestore, 'doctors')) : null);
   
-  // This is not ideal, but a workaround for querying appointments across all patients
   const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(firestore ? query(collectionGroup(firestore, 'appointments')) : null);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,8 +39,10 @@ export function DoctorSearch() {
     return `${hours.padStart(2, '0')}:${minutes}`;
   };
 
-  const filteredDoctors = doctors?.filter(
+  const filteredDoctors = useMemo(() => doctors?.filter(
     (doctor) => {
+        if (!doctor.fullName || !doctor.specialty) return false;
+        
         const matchesSearch = doctor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -73,7 +74,7 @@ export function DoctorSearch() {
 
         return true;
     }
-  );
+  ), [doctors, searchTerm, filter, timeFilter, appointments]);
   
   const isLoading = doctorsLoading || appointmentsLoading;
 
@@ -166,5 +167,3 @@ export function DoctorSearch() {
     </>
   );
 }
-
-    

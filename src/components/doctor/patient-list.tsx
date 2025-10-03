@@ -23,7 +23,9 @@ export function PatientList() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const appointmentsQuery = firestore && user ? query(collectionGroup(firestore, 'appointments'), where('doctorId', '==', user.uid)) : null;
+    const appointmentsQuery = useMemo(() => 
+        firestore && user ? query(collectionGroup(firestore, 'appointments'), where('doctorId', '==', user.uid)) : null
+    , [firestore, user]);
     const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(appointmentsQuery);
 
     const patientIds = useMemo(() => {
@@ -31,7 +33,9 @@ export function PatientList() {
         return [...new Set(appointments.map(apt => apt.patientId))];
     }, [appointments]);
 
-    const usersQuery = firestore && patientIds.length > 0 ? query(collection(firestore, 'users'), where('uid', 'in', patientIds)) : null;
+    const usersQuery = useMemo(() => 
+        firestore && patientIds.length > 0 ? query(collection(firestore, 'users'), where('uid', 'in', patientIds)) : null
+    , [firestore, patientIds]);
     const { data: patientsData, loading: patientsLoading } = useCollection<User>(usersQuery);
 
     const patientsList: PatientListItem[] = useMemo(() => {
@@ -112,5 +116,3 @@ export function PatientList() {
         </Card>
     );
 }
-
-    
