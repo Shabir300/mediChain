@@ -7,14 +7,13 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
-import { getDoc, doc } from 'firebase/firestore';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -25,20 +24,20 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signIn, signOut, loading, userData } = useAuth();
-  const firestore = useFirestore();
+  const { user, signIn, signOut, loading } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    // This will log out any existing user to reset the state
-    signOut();
-  }, [signOut]);
+    if(isClient) {
+      signOut();
+    }
+  }, [signOut, isClient]);
 
   useEffect(() => {
-    if (user && userData && isClient) {
-        const role = userData.role;
+    if (!loading && user && isClient) {
+        const role = user.role;
         switch (role) {
             case 'patient':
                 router.push('/patient');
@@ -50,11 +49,17 @@ export default function LoginPage() {
                 router.push('/pharmacy');
                 break;
             default:
-                // Stay on login page if role is unknown
+                // If role is unknown, maybe show an error and sign out
+                toast({
+                    variant: 'destructive',
+                    title: 'Login Failed',
+                    description: 'User role is not defined. Please contact support.',
+                });
+                signOut();
                 break;
         }
     }
-  }, [user, userData, isClient, router, toast]);
+  }, [user, loading, isClient, router, toast, signOut]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -71,7 +76,6 @@ export default function LoginPage() {
           title: 'Login Successful',
           description: `Welcome back! Redirecting...`,
       });
-      // The useEffect hook will handle the redirection after the user state is updated.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -91,8 +95,7 @@ export default function LoginPage() {
         </div>
     );
   }
-
-  // If user is logged in, useEffect will redirect. Show a redirecting message.
+  
   if (user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">

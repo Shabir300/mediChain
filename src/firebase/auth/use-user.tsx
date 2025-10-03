@@ -18,7 +18,6 @@ import type { User as AppUser } from '@/lib/types';
 export function useUser() {
   const { auth, firestore } = useFirebase();
   const [user, setUser] = useState<AppUser | null>(null);
-  const [userData, setUserData] = useState<Pick<AppUser, 'role' | 'pharmacyName' | 'displayName' | 'email' | 'uid'> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,19 +35,19 @@ export function useUser() {
                 pharmacyName: data.pharmacyName,
             }
             setUser(fullUser);
-            setUserData(fullUser);
         } else {
-            const basicUser: AppUser = {
+            // This might happen briefly during signup, or if the user doc doesn't exist
+            // We set a basic user object, but the role might be missing.
+             const basicUser: AppUser = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email!,
                 displayName: firebaseUser.displayName!,
-                role: 'patient', // default role
+                role: 'patient', // default role, redirection logic should be robust
             }
             setUser(basicUser);
         }
       } else {
         setUser(null);
-        setUserData(null);
       }
       setLoading(false);
     });
@@ -58,7 +57,8 @@ export function useUser() {
 
   return {
     user,
-    userData,
+    // Keep userData for compatibility in other parts of the app for now, but it's derived from user.
+    userData: user, 
     loading,
     signUp: (email, password) =>
       createUserWithEmailAndPassword(auth, email, password),
