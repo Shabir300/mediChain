@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
@@ -39,7 +38,7 @@ const doctorDetails: any = {
 }
 
 
-export default function DoctorProfilePage({ params }: { params: { id: string } }) {
+export default function DoctorProfilePage({ params: { id: doctorId } }: { params: { id: string } }) {
     const { doctors, appointments, addAppointment } = useDataStore();
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isUrgent, setIsUrgent] = useState(false);
@@ -48,7 +47,6 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
 
     const { toast } = useToast();
     
-    const doctorId = params.id;
     const doctor = doctors.find(d => d.id === doctorId);
     const details = doctorDetails[doctorId];
 
@@ -226,5 +224,3 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
         </DashboardLayout>
     );
 }
-
-    
