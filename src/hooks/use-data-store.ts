@@ -34,7 +34,7 @@ export interface DataState {
   removeMedicalRecord: (recordId: string) => void;
   updateOrderStatus: (orderId: string, status: 'approved' | 'declined') => void;
   updateProductStock: (productId: string, newStock: number) => void;
-  addProduct: (product: Omit<Product, 'id' | 'image' | 'description'>) => void;
+  addProduct: (product: Omit<Product, 'id'>) => void;
   addDoctor: (doctor: Omit<Doctor, 'id' | 'location' | 'availability' | 'rating' | 'name'> & { fullName: string }) => void;
 }
 
@@ -110,8 +110,6 @@ export const useDataStore = create<DataState>()(
                 {
                     ...product,
                     id: `prod-${Date.now()}`,
-                    image: 'medicine-1', // default image
-                    description: 'Newly added product'
                 },
                 ...state.pharmacyProducts,
             ]

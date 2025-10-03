@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -17,12 +16,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Upload } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
+import { Textarea } from '../ui/textarea';
 
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
+  description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.coerce.number().min(0.01, "Price must be positive"),
   stock: z.coerce.number().min(0, "Stock can't be negative"),
+  image: z.any().optional(),
 });
 type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -30,14 +33,21 @@ export function InventoryManagement() {
     const { pharmacyProducts, updateProductStock, addProduct } = useDataStore();
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const { toast } = useToast();
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productSchema),
-        defaultValues: { name: "", price: 0, stock: 0 },
+        defaultValues: { name: "", price: 0, stock: 0, description: "" },
     });
 
-    const getImage = (id: string) => PlaceHolderImages.find(img => img.id === id);
+    const getImage = (id: string) => {
+        if (id.startsWith('data:image')) {
+            return id;
+        }
+        const placeholder = PlaceHolderImages.find(img => img.id === id);
+        return placeholder?.imageUrl;
+    };
 
     const handleStockUpdate = async (product: Product, newStock: number) => {
         updateProductStock(product.id, newStock);
@@ -68,6 +78,8 @@ export function InventoryManagement() {
             name: data.name,
             price: data.price,
             stock: data.stock,
+            description: data.description,
+            image: imagePreview || '',
         });
         toast({
             title: 'Product Added',
@@ -76,7 +88,20 @@ export function InventoryManagement() {
         setIsSubmitting(false);
         setIsAddDialogOpen(false);
         form.reset();
+        setImagePreview(null);
     }
+
+    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
 
     return (
         <Card>
@@ -95,7 +120,43 @@ export function InventoryManagement() {
                         </DialogHeader>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(handleAddProduct)} className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="h-24 w-24 rounded-md">
+                                        {imagePreview && <AvatarImage src={imagePreview} alt="Product Preview" className='rounded-md object-cover' />}
+                                        <AvatarFallback className='rounded-md'>
+                                            <Upload />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                     <FormField
+                                        control={form.control}
+                                        name="image"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                            <FormLabel>Product Image</FormLabel>
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <Button asChild variant="outline">
+                                                        <label htmlFor="product-image-upload" className="cursor-pointer">
+                                                            <Upload className="mr-2 h-4 w-4" />
+                                                            Upload
+                                                        </label>
+                                                    </Button>
+                                                    <Input 
+                                                        id="product-image-upload"
+                                                        type="file" 
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        accept="image/*"
+                                                        onChange={handleImageChange}
+                                                    />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                                <FormField control={form.control} name="name" render={({field}) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                               <FormField control={form.control} name="description" render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)}/>
                                <FormField control={form.control} name="price" render={({field}) => (<FormItem><FormLabel>Price (PKR)</FormLabel><FormControl><Input type="number" step="0.01" {...field}/></FormControl><FormMessage/></FormItem>)}/>
                                <FormField control={form.control} name="stock" render={({field}) => (<FormItem><FormLabel>Initial Stock</FormLabel><FormControl><Input type="number" {...field}/></FormControl><FormMessage/></FormItem>)}/>
                                <DialogFooter>
@@ -122,12 +183,12 @@ export function InventoryManagement() {
                     </TableHeader>
                     <TableBody>
                         {pharmacyProducts.map(product => {
-                             const image = getImage(product.image);
+                             const imageUrl = getImage(product.image);
                              return(
                             <TableRow key={product.id}>
                                 <TableCell>
                                     <div className='flex items-center gap-4'>
-                                        {image && <Image src={image.imageUrl} alt={image.description} data-ai-hint={image.imageHint} width={40} height={40} className='rounded-md'/>}
+                                        {imageUrl && <Image src={imageUrl} alt={product.name} width={40} height={40} className='rounded-md'/>}
                                         <span>{product.name}</span>
                                     </div>
                                 </TableCell>
