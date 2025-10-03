@@ -48,6 +48,7 @@ export function PatientAiSheet() {
   });
 
   const onSubmit = async (data: QueryFormValues) => {
+    if (!user) return;
     setIsLoading(true);
     const userMessage: ChatMessage = { sender: 'user', text: data.userQuery };
     
@@ -65,6 +66,7 @@ export function PatientAiSheet() {
     try {
       const result = await patientAiAssistant({ 
         userQuery: data.userQuery,
+        userId: user.uid,
         chatHistory: currentChatHistory,
         medicalHistory: medicalHistoryText,
         appointments: appointmentsText,
@@ -141,7 +143,7 @@ export function PatientAiSheet() {
                 </FormItem>
             )}
             />
-            <Button type="submit" disabled={isLoading} className="w-full">
+            <Button type="submit" disabled={isLoading || !user} className="w-full">
             {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</> : 'Send Message'}
             </Button>
         </form>

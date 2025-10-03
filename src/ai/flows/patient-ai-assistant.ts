@@ -15,6 +15,7 @@ import { getActiveMedications, getBudgetAndSpending, getMedicalRecordSummary, fi
 
 const PatientAiAssistantInputSchema = z.object({
   userQuery: z.string().describe('The question or statement from the user.'),
+  userId: z.string().describe("The patient's unique ID (UID)."),
   medicalHistory: z.string().optional().describe("A summary of the patient's medical history file names."),
   appointments: z.string().optional().describe('A summary of past and upcoming appointments.'),
   medications: z.string().optional().describe('A summary of current medications.'),
@@ -52,7 +53,7 @@ const prompt = ai.definePrompt({
   1.  Analyze the user's query to understand their intent. Are they asking about symptoms, spending, medication, a specific medical record, or just having a general conversation?
   2.  Based on the intent, decide if you need to use a tool.
       - If they ask about **symptoms** (e.g., "I have a headache"), determine if a specialist is needed and use the 'findAvailableDoctors' tool if necessary.
-      - If they ask about **budget, cost, or spending**, use the 'getBudgetAndSpending' tool.
+      - If they ask about **budget, cost, or spending**, use the 'getBudgetAndSpending' tool, passing the current user's ID: {{{userId}}}.
       - If they ask about their **current medications**, use the 'getActiveMedications' tool and refer to the 'Active Medications' context provided above.
       - If they ask a question about a **specific medical record** (e.g., "what were my blood test results?"), use the 'getMedicalRecordSummary' tool with the relevant filename.
       - If they say 'hi' or make a general statement, provide a friendly greeting and ask how you can help. DO NOT default to asking for symptoms unless they mention them.

@@ -1,7 +1,10 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { doctors, appointments as allAppointments, orders as allOrders } from '@/lib/data';
+import { initializeFirebase } from '@/firebase';
+import { collection, collectionGroup, getDocs, query, where } from 'firebase/firestore';
+import type { Doctor, Appointment, Order } from '@/lib/types';
+
 
 export const findAvailableDoctors = ai.defineTool(
   {
@@ -16,8 +19,12 @@ export const findAvailableDoctors = ai.defineTool(
     })),
   },
   async ({specialty}) => {
-    // In a real app, this would query a database. Here, we filter the mock data.
-    return doctors.filter(doctor => doctor.specialty.toLowerCase() === specialty.toLowerCase() && doctor.availability === 'Online');
+    const { firestore } = initializeFirebase();
+    const doctorsRef = collection(firestore, 'doctors');
+    const q = query(doctorsRef, where('specialty', '==', specialty), where('availability', '==', 'Online'));
+    const snapshot = await getDocs(q);
+    const doctors = snapshot.docs.map(doc => doc.data() as Doctor);
+    return doctors.map(doctor => ({ name: doctor.fullName, specialty: doctor.specialty }));
   }
 );
 
@@ -26,17 +33,31 @@ export const getBudgetAndSpending = ai.defineTool(
     {
         name: 'getBudgetAndSpending',
         description: "Calculates the patient's total spending on doctor appointments and pharmacy orders.",
-        inputSchema: z.object({}),
+        inputSchema: z.object({
+            patientId: z.string().describe("The UID of the patient to fetch spending for.")
+        }),
         outputSchema: z.object({
             totalSpending: z.number(),
             doctorSpending: z.number(),
             pharmacySpending: z.number(),
         })
     },
-    async () => {
-        const totalDoctorSpending = allAppointments.reduce((sum, apt) => sum + apt.cost, 0);
-        const totalPharmacySpending = allOrders.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0);
+    async ({ patientId }) => {
+        const { firestore } = initializeFirebase();
+        
+        const appointmentsRef = collection(firestore, 'patients', patientId, 'appointments');
+        const ordersRef = collection(firestore, 'patients', patientId, 'orders');
+
+        const appointmentsSnap = await getDocs(appointmentsRef);
+        const ordersSnap = await getDocs(ordersRef);
+
+        const appointments = appointmentsSnap.docs.map(doc => doc.data() as Appointment);
+        const orders = ordersSnap.docs.map(doc => doc.data() as Order);
+
+        const totalDoctorSpending = appointments.reduce((sum, apt) => sum + apt.cost, 0);
+        const totalPharmacySpending = orders.filter(o => o.status === 'approved').reduce((sum, order) => sum + order.total, 0);
         const totalSpending = totalDoctorSpending + totalPharmacySpending;
+        
         return {
             totalSpending,
             doctorSpending: totalDoctorSpending,
