@@ -124,3 +124,5 @@ export const addAppointment = (appointment: Omit<Appointment, 'id' | 'status' | 
     console.warn("`addAppointment` from `data.ts` is deprecated. Use `useDataStore` hook instead.");
     return null;
 };
+
+    

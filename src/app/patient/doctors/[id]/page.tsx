@@ -48,8 +48,9 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
 
     const { toast } = useToast();
     
-    const doctor = doctors.find(d => d.id === params.id);
-    const details = doctorDetails[params.id];
+    const doctorId = params.id;
+    const doctor = doctors.find(d => d.id === doctorId);
+    const details = doctorDetails[doctorId];
 
     if (!doctor) {
         notFound();
@@ -225,3 +226,5 @@ export default function DoctorProfilePage({ params }: { params: { id: string } }
         </DashboardLayout>
     );
 }
+
+    
