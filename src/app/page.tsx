@@ -25,58 +25,36 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signIn, loading } = useAuth();
+  const { user, signIn, signOut, loading, userData } = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    // This will log out any existing user to reset the state
+    signOut();
+  }, [signOut]);
 
   useEffect(() => {
-    const checkUserRole = async () => {
-      if (user && firestore && isClient) {
-        try {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                const role = userData.role;
-                switch (role) {
-                    case 'patient':
-                        router.push('/patient');
-                        break;
-                    case 'doctor':
-                        router.push('/doctor');
-                        break;
-                    case 'pharmacy':
-                        router.push('/pharmacy');
-                        break;
-                    default:
-                        // Stay on login page if role is unknown
-                        break;
-                }
-            } else {
-                // If user exists in Auth but not in Firestore, they can't log in
-                 toast({
-                    variant: 'destructive',
-                    title: 'Login Failed',
-                    description: 'User data not found. Please contact support.',
-                });
-            }
-        } catch (error) {
-            console.error("Redirection error:", error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not retrieve user role.',
-            });
+    if (user && userData && isClient) {
+        const role = userData.role;
+        switch (role) {
+            case 'patient':
+                router.push('/patient');
+                break;
+            case 'doctor':
+                router.push('/doctor');
+                break;
+            case 'pharmacy':
+                router.push('/pharmacy');
+                break;
+            default:
+                // Stay on login page if role is unknown
+                break;
         }
-      }
     }
-    checkUserRole();
-  }, [user, firestore, router, isClient, toast]);
+  }, [user, userData, isClient, router, toast]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
