@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Clock, PlusCircle, Trash2 } from 'lucide-react';
-import { useMedicationStore, Medication } from '@/hooks/use-medication-store';
+import { useHydratedMedicationStore, Medication } from '@/hooks/use-medication-store';
 
 const reminderSchema = z.object({
   name: z.string().min(2, 'Medication name is required.'),
@@ -22,7 +22,7 @@ type ReminderFormValues = z.infer<typeof reminderSchema>;
 
 export function MedicationManager() {
     const { toast } = useToast();
-    const { medications, addMedication, removeMedication } = useMedicationStore();
+    const { medications, addMedication, removeMedication } = useHydratedMedicationStore();
     
     const form = useForm<ReminderFormValues>({
         resolver: zodResolver(reminderSchema),

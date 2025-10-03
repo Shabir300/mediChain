@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, MessageCircle, User } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useMedicationStore } from '@/hooks/use-medication-store';
+import { useHydratedMedicationStore } from '@/hooks/use-medication-store';
 import { useAuth, useCollection, useFirestore } from '@/firebase';
 import { collection, query } from 'firebase/firestore';
 import type { Appointment, Order, MedicalRecord } from '@/lib/types';
@@ -35,7 +35,7 @@ export function PatientAiSheet() {
   const { data: appointments } = useCollection<Appointment>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'appointments')) : null);
   const { data: orders } = useCollection<Order>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'orders')) : null);
 
-  const { medications } = useMedicationStore();
+  const { medications } = useHydratedMedicationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isOpen, setIsOpen] = useState(false);

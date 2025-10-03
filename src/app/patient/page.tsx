@@ -1,6 +1,6 @@
 
 "use client";
-import { useMedicationStore } from "@/hooks/use-medication-store";
+import { useHydratedMedicationStore } from "@/hooks/use-medication-store";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import type { Appointment, Order, MedicalRecord } from '@/lib/types';
 export default function PatientPage() {
     const { user } = useAuth();
     const firestore = useFirestore();
-    const { medications: currentMedications } = useMedicationStore();
+    const { medications: currentMedications } = useHydratedMedicationStore();
     
     const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'appointments')) : null);
     const { data: orders, loading: ordersLoading } = useCollection<Order>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'orders')) : null);

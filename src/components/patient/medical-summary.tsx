@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import jsPDF from "jspdf";
 import { getMedicalSummary, MedicalSummaryOutput } from "@/ai/flows/generate-medical-summary";
-import { useMedicationStore } from "@/hooks/use-medication-store";
+import { useHydratedMedicationStore } from "@/hooks/use-medication-store";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Calendar, HeartPulse, Pilcrow, Download } from "lucide-react";
@@ -18,7 +18,7 @@ import type { Appointment, MedicalRecord } from '@/lib/types';
 export function MedicalSummary() {
     const { user } = useAuth();
     const firestore = useFirestore();
-    const { medications } = useMedicationStore();
+    const { medications } = useHydratedMedicationStore();
     
     const { data: appointments, loading: appointmentsLoading } = useCollection<Appointment>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'appointments')) : null);
     const { data: medicalRecords, loading: recordsLoading } = useCollection<MedicalRecord>(firestore && user ? query(collection(firestore, 'patients', user.uid, 'records')) : null);

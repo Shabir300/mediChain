@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useMedicationStore } from '@/hooks/use-medication-store';
+import { useHydratedMedicationStore } from '@/hooks/use-medication-store';
 import { ToastAction } from '../ui/toast';
 
 export function MedicationReminder() {
-    const { medications } = useMedicationStore();
+    const { medications } = useHydratedMedicationStore();
     const { toast, dismiss } = useToast();
 
     useEffect(() => {
