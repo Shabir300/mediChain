@@ -14,8 +14,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -24,37 +22,19 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-// Temporary demo users
-const demoUsers = {
-    'patient@test.com': { role: 'patient', displayName: 'Demo Patient' },
-    'doctor@test.com': { role: 'doctor', displayName: 'Demo Doctor' },
-    'pharmacy@test.com': { role: 'pharmacy', displayName: 'Demo Pharmacy' },
-}
-
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signIn, signOut: firebaseSignOut, loading } = useAuth();
+  const { user, signIn, loading } = useAuth();
   const { toast } = useToast();
-  const firestore = useFirestore();
   const [isClient, setIsClient] = useState(false);
-  const [localUser, setLocalUser] = useState<any>(null); // For demo purposes
-
-  const signOut = () => {
-    firebaseSignOut();
-    setLocalUser(null);
-  }
 
   useEffect(() => {
     setIsClient(true);
-    // Ensure any previous session is cleared on page load
-    signOut();
   }, []);
 
   useEffect(() => {
-    if (!loading && (user || localUser) && isClient) {
-      const currentUser = localUser || user;
-      if (currentUser && currentUser.role) {
-        switch (currentUser.role) {
+    if (!loading && user && isClient && user.role) {
+        switch (user.role) {
           case 'patient':
             router.push('/patient');
             break;
@@ -65,17 +45,11 @@ export default function LoginPage() {
             router.push('/pharmacy');
             break;
           default:
-            toast({
-              variant: 'destructive',
-              title: 'Login Failed',
-              description: 'Your user role is not recognized. Please contact support.',
-            });
-            signOut();
+             // Stay on the login page if role is not determined
             break;
         }
-      }
     }
-  }, [user, localUser, loading, isClient, router, toast]);
+  }, [user, loading, isClient, router]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -86,35 +60,14 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
-    // Demo user login
-    if (data.email in demoUsers && data.password === 'password') {
-        const demoUser = demoUsers[data.email as keyof typeof demoUsers];
-        setLocalUser({
-            uid: `demo-${demoUser.role}`,
-            email: data.email,
-            displayName: demoUser.displayName,
-            role: demoUser.role,
-        });
-        toast({
-            title: 'Login Successful',
-            description: `Welcome back, ${demoUser.displayName}! Redirecting...`,
-        });
-        return;
-    }
-
-    // Real Firebase login
     try {
       const userCredential = await signIn(data.email, data.password);
-      if (userCredential.user && firestore) {
-          const userDoc = await getDoc(doc(firestore, "users", userCredential.user.uid));
-          if (userDoc.exists()) {
-              toast({
-                  title: 'Login Successful',
-                  description: `Welcome back! Redirecting...`,
-              });
-          } else {
-              throw new Error("User document not found.");
-          }
+      if (userCredential.user) {
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back! Redirecting...`,
+        });
+        // The useEffect will handle the redirection once the user object with role is populated.
       }
     } catch (error: any) {
       toast({
@@ -125,7 +78,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!isClient || (loading && !localUser)) {
+  if (!isClient || loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -136,7 +89,7 @@ export default function LoginPage() {
     );
   }
   
-  if (user || localUser) {
+  if (user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

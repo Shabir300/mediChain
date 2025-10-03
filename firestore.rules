@@ -1,36 +1,3 @@
-/**
- * @fileoverview Firestore Security Rules for the HealthConnect application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model. Users can only
- * access their own data. Doctor and Pharmacy profiles are publicly readable
- * but only modifiable by themselves.
- *
- * Data Structure:
- * - `/users/{userId}`: Stores basic user information.
- * - `/doctors/{doctorId}`: Stores doctor profile information.
- * - `/pharmacies/{pharmacyId}/products/{productId}`: Stores products for pharmacies.
- * - `/patients/{patientId}/appointments/{appointmentId}`: Stores appointments for patients.
- * - `/patients/{patientId}/orders/{orderId}`: Stores orders for patients.
- * - `/patients/{patientId}/records/{recordId}`: Stores medical records for patients.
- * - `/patients/{patientId}/medications/{medicationId}`: Stores medication reminders for patients.
- *
- * Key Security Decisions:
- * - Users can only read and write their own user document.
- * - Doctors can create, read, update and delete their own profile.
- * - Pharmacies can create, read, update and delete their products under their pharmacy profile.
- * - Patients can create, read, update and delete their own appointments, orders, medical records, and medications.
- * - Listing of users, doctors, and pharmacies is not allowed.
- *
- * Denormalization for Authorization:
- * - Each document requiring authorization has an explicit owner ID field
- *   (e.g., `patientId`, `doctorId`, `pharmacyId`) that is validated against
- *   `request.auth.uid`.
- *
- * Structural Segregation:
- * - Private user data is stored under `/users/{userId}`, ensuring that only
- *   the user can access it.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -38,15 +5,10 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile information.
      * @path /users/{userId}
-     * @allow (create) User with matching UID can create their own profile.
-     * @allow (get) User can read their own profile.
-     * @allow (update) User can update their own profile.
-     * @allow (delete) User can delete their own profile.
-     * @deny (create) User attempts to create a profile with a mismatched UID.
-     * @deny (get) User attempts to read another user's profile.
-     * @deny (update) User attempts to update another user's profile.
-     * @deny (delete) User attempts to delete another user's profile.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) User with uid 'user123' can create their own profile document.
+     * @allow (get, update, delete) User with uid 'user123' can read, update, and delete their own profile document.
+     * @deny (create, update, delete) User with uid 'user456' cannot create, update, or delete the profile document of user with id 'user123'.
+     * @principle Enforces user-ownership; users can only manage their own profiles.
      */
     match /users/{userId} {
       function isSignedIn() {
@@ -69,16 +31,12 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to doctor profiles.
+     * @description Controls access to doctor profile information.
      * @path /doctors/{doctorId}
-     * @allow (create) Doctor with matching UID can create their own profile.
-     * @allow (get) Any user can read doctor profiles.
-     * @allow (update) Doctor with matching UID can update their own profile.
-     * @allow (delete) Doctor with matching UID can delete their own profile.
-     * @deny (create) Doctor attempts to create a profile with a mismatched UID.
-     * @deny (update) User attempts to update another doctor's profile.
-     * @deny (delete) User attempts to delete another doctor's profile.
-     * @principle Enforces document ownership for writes, public read access.
+     * @allow (get, list) Any user can read the doctor's profile.
+     * @allow (create, update, delete) A doctor can create, update, and delete their own profile.
+     * @deny (create, update, delete) A non-doctor user cannot create, update, or delete a doctor's profile.
+     * @principle Allows public read access to doctor profiles while enforcing ownership for writes.
      */
     match /doctors/{doctorId} {
       function isSignedIn() {
@@ -93,56 +51,46 @@ service cloud.firestore {
         return isOwner(doctorId) && resource.data != null;
       }
 
-      allow get: if true;
-      allow list: if false;
+      allow get, list: if true;
       allow create: if isSignedIn() && isOwner(doctorId);
       allow update: if isSignedIn() && isExistingOwner(doctorId);
       allow delete: if isSignedIn() && isExistingOwner(doctorId);
     }
 
-    /**
-     * @description Controls access to pharmacy products.
-     * @path /pharmacies/{pharmacyId}/products/{productId}
-     * @allow (create) Pharmacy with matching UID can create their own products.
-     * @allow (get) Any user can read pharmacy products.
-     * @allow (update) Pharmacy with matching UID can update their own products.
-     * @allow (delete) Pharmacy with matching UID can delete their own products.
-     * @deny (create) Pharmacy attempts to create products with a mismatched UID.
-     * @deny (update) User attempts to update another pharmacy's products.
-     * @deny (delete) User attempts to delete another pharmacy's products.
-     * @principle Enforces document ownership for writes, public read access.
-     */
+     /**
+      * @description Controls access to pharmacy products.
+      * @path /pharmacies/{pharmacyId}/products/{productId}
+      * @allow (get, list) Any user can read the product.
+      * @allow (create, update, delete) A pharmacy can manage its own products.
+      * @deny (create, update, delete) A different pharmacy or user cannot manage this pharmacy's products.
+      * @principle Allows public read access to products while enforcing pharmacy-ownership for writes.
+      */
     match /pharmacies/{pharmacyId}/products/{productId} {
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isOwner(pharmacyId) {
+      function isPharmacyOwner(pharmacyId) {
         return request.auth.uid == pharmacyId;
       }
 
-       function isExistingOwner(pharmacyId) {
-        return isOwner(pharmacyId) && resource.data != null;
+      function isExistingPharmacyOwner(pharmacyId) {
+        return isPharmacyOwner(pharmacyId) && resource.data != null;
       }
 
-      allow get: if true;
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(pharmacyId);
-      allow update: if isSignedIn() && isExistingOwner(pharmacyId);
-      allow delete: if isSignedIn() && isExistingOwner(pharmacyId);
+      allow get, list: if true;
+      allow create: if isSignedIn() && isPharmacyOwner(pharmacyId);
+      allow update: if isSignedIn() && isExistingPharmacyOwner(pharmacyId);
+      allow delete: if isSignedIn() && isExistingPharmacyOwner(pharmacyId);
     }
 
     /**
      * @description Controls access to patient appointments.
      * @path /patients/{patientId}/appointments/{appointmentId}
-     * @allow (create) Patient with matching UID can create their own appointments.
-     * @allow (get) Patient can read their own appointments.
-     * @allow (update) Patient can update their own appointments.
-     * @allow (delete) Patient can delete their own appointments.
-     * @deny (create) Patient attempts to create appointments with a mismatched UID.
-     * @deny (update) User attempts to update another patient's appointments.
-     * @deny (delete) User attempts to delete another patient's appointments.
-     * @principle Enforces document ownership for all operations.
+     * @allow (get, list) A patient can read their own appointments.
+     * @allow (create, update, delete) A patient can create, update, and delete their own appointments.
+     * @deny (create, update, delete) Another patient cannot manage these appointments.
+     * @principle Enforces patient-ownership; patients can only manage their own appointments.
      */
     match /patients/{patientId}/appointments/{appointmentId} {
       function isSignedIn() {
@@ -158,7 +106,7 @@ service cloud.firestore {
       }
 
       allow get: if isSignedIn() && isOwner(patientId);
-      allow list: if false;
+      allow list: if isSignedIn() && isOwner(patientId);
       allow create: if isSignedIn() && isOwner(patientId);
       allow update: if isSignedIn() && isExistingOwner(patientId);
       allow delete: if isSignedIn() && isExistingOwner(patientId);
@@ -167,14 +115,10 @@ service cloud.firestore {
     /**
      * @description Controls access to patient orders.
      * @path /patients/{patientId}/orders/{orderId}
-     * @allow (create) Patient with matching UID can create their own orders.
-     * @allow (get) Patient can read their own orders.
-     * @allow (update) Patient can update their own orders.
-     * @allow (delete) Patient can delete their own orders.
-     * @deny (create) Patient attempts to create orders with a mismatched UID.
-     * @deny (update) User attempts to update another patient's orders.
-     * @deny (delete) User attempts to delete another patient's orders.
-     * @principle Enforces document ownership for all operations.
+     * @allow (get, list) A patient can read their own orders.
+     * @allow (create, update, delete) A patient can create, update, and delete their own orders.
+     * @deny (create, update, delete) Another patient cannot manage these orders.
+     * @principle Enforces patient-ownership; patients can only manage their own orders.
      */
     match /patients/{patientId}/orders/{orderId} {
       function isSignedIn() {
@@ -190,74 +134,66 @@ service cloud.firestore {
       }
 
       allow get: if isSignedIn() && isOwner(patientId);
-      allow list: if false;
+      allow list: if isSignedIn() && isOwner(patientId);
       allow create: if isSignedIn() && isOwner(patientId);
       allow update: if isSignedIn() && isExistingOwner(patientId);
       allow delete: if isSignedIn() && isExistingOwner(patientId);
     }
-
+    
     /**
      * @description Controls access to patient medical records.
      * @path /patients/{patientId}/records/{recordId}
-     * @allow (create) Patient with matching UID can create their own medical records.
-     * @allow (get) Patient can read their own medical records.
-     * @allow (update) Patient can update their own medical records.
-     * @allow (delete) Patient can delete their own medical records.
-     * @deny (create) Patient attempts to create medical records with a mismatched UID.
-     * @deny (update) User attempts to update another patient's medical records.
-     * @deny (delete) User attempts to delete another patient's medical records.
-     * @principle Enforces document ownership for all operations.
+     * @allow (get, list) A patient can read their own medical records.
+     * @allow (create, update, delete) A patient can create, update, and delete their own medical records.
+     * @deny (create, update, delete) Another patient cannot manage these medical records.
+     * @principle Enforces patient-ownership; patients can only manage their own medical records.
      */
     match /patients/{patientId}/records/{recordId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(patientId) {
-        return request.auth.uid == patientId;
-      }
-
-      function isExistingOwner(patientId) {
-        return isOwner(patientId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(patientId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(patientId);
-      allow update: if isSignedIn() && isExistingOwner(patientId);
-      allow delete: if isSignedIn() && isExistingOwner(patientId);
+        function isSignedIn() {
+          return request.auth != null;
+        }
+  
+        function isOwner(patientId) {
+          return request.auth.uid == patientId;
+        }
+  
+        function isExistingOwner(patientId) {
+          return isOwner(patientId) && resource.data != null;
+        }
+  
+        allow get: if isSignedIn() && isOwner(patientId);
+        allow list: if isSignedIn() && isOwner(patientId);
+        allow create: if isSignedIn() && isOwner(patientId);
+        allow update: if isSignedIn() && isExistingOwner(patientId);
+        allow delete: if isSignedIn() && isExistingOwner(patientId);
     }
 
-     /**
-      * @description Controls access to patient medication reminders.
-      * @path /patients/{patientId}/medications/{medicationId}
-      * @allow (create) Patient with matching UID can create their own medication reminders.
-      * @allow (get) Patient can read their own medication reminders.
-      * @allow (update) Patient can update their own medication reminders.
-      * @allow (delete) Patient can delete their own medication reminders.
-      * @deny (create) Patient attempts to create medication reminders with a mismatched UID.
-      * @deny (update) User attempts to update another patient's medication reminders.
-      * @deny (delete) User attempts to delete another patient's medication reminders.
-      * @principle Enforces document ownership for all operations.
-      */
+    /**
+     * @description Controls access to patient medication reminders.
+     * @path /patients/{patientId}/medications/{medicationId}
+     * @allow (get, list) A patient can read their own medication reminders.
+     * @allow (create, update, delete) A patient can create, update, and delete their own medication reminders.
+     * @deny (create, update, delete) Another patient cannot manage these medication reminders.
+     * @principle Enforces patient-ownership; patients can only manage their own medication reminders.
+     */
     match /patients/{patientId}/medications/{medicationId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(patientId) {
-        return request.auth.uid == patientId;
-      }
-
-      function isExistingOwner(patientId) {
-        return isOwner(patientId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(patientId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(patientId);
-      allow update: if isSignedIn() && isExistingOwner(patientId);
-      allow delete: if isSignedIn() && isExistingOwner(patientId);
+        function isSignedIn() {
+          return request.auth != null;
+        }
+  
+        function isOwner(patientId) {
+          return request.auth.uid == patientId;
+        }
+  
+        function isExistingOwner(patientId) {
+          return isOwner(patientId) && resource.data != null;
+        }
+  
+        allow get: if isSignedIn() && isOwner(patientId);
+        allow list: if isSignedIn() && isOwner(patientId);
+        allow create: if isSignedIn() && isOwner(patientId);
+        allow update: if isSignedIn() && isExistingOwner(patientId);
+        allow delete: if isSignedIn() && isExistingOwner(patientId);
     }
   }
 }
