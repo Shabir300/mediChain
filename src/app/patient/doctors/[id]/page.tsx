@@ -1,7 +1,8 @@
+
 "use client";
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Doctor } from '@/lib/data';
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -38,7 +39,9 @@ const doctorDetails: any = {
 }
 
 
-export default function DoctorProfilePage({ params: { id: doctorId } }: { params: { id: string } }) {
+export default function DoctorProfilePage() {
+    const params = useParams();
+    const doctorId = params.id as string;
     const { doctors, appointments, addAppointment } = useDataStore();
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isUrgent, setIsUrgent] = useState(false);
