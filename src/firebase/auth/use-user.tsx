@@ -7,22 +7,18 @@ import {
   signInWithEmailAndPassword,
   signOut,
   type User as FirebaseUser,
+  updateProfile
 } from 'firebase/auth';
 import { doc, getDoc }from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { useAuth as useFirebaseAuth, useFirestore } from '../provider';
-import type { Role } from '@/context/auth-context';
+import { useFirebase } from '../provider';
+import type { User as AppUser } from '@/lib/types';
 
-export interface User extends FirebaseUser {
-    role?: Role;
-    pharmacyName?: string;
-}
 
 export function useUser() {
-  const { auth } = useFirebaseAuth();
-  const firestore = useFirestore();
-  const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<{role: Role, pharmacyName?: string} | null>(null);
+  const { auth, firestore } = useFirebase();
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [userData, setUserData] = useState<Pick<AppUser, 'role' | 'pharmacyName' | 'displayName' | 'email' | 'uid'> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,10 +28,23 @@ export function useUser() {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
             const data = userDoc.data();
-            setUser({ ...firebaseUser, role: data.role, pharmacyName: data.pharmacyName });
-            setUserData({ role: data.role, pharmacyName: data.pharmacyName });
+            const fullUser: AppUser = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                displayName: firebaseUser.displayName!,
+                role: data.role,
+                pharmacyName: data.pharmacyName,
+            }
+            setUser(fullUser);
+            setUserData(fullUser);
         } else {
-            setUser(firebaseUser);
+            const basicUser: AppUser = {
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                displayName: firebaseUser.displayName!,
+                role: 'patient', // default role
+            }
+            setUser(basicUser);
         }
       } else {
         setUser(null);
@@ -56,5 +65,6 @@ export function useUser() {
     signIn: (email, password) =>
       signInWithEmailAndPassword(auth, email, password),
     signOut: () => signOut(auth),
+    updateProfile: (user: FirebaseUser, profile: { displayName?: string, photoURL?: string}) => updateProfile(user, profile),
   };
 }

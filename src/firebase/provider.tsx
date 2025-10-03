@@ -86,7 +86,6 @@ export function useFirestore() {
 
 // Custom hook to get the Auth instance
 export function useAuth() {
-  const { auth, ...rest } = useFirebase();
   const userHook = useUser();
-  return { ...rest, auth, ...userHook };
+  return userHook;
 }
