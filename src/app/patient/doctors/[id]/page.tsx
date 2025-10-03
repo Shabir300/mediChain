@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { notFound, useParams } from 'next/navigation';
 import { useDataStore } from '@/hooks/use-data-store';
-import { Doctor } from '@/lib/data';
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,6 @@ import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Star, Clock, Stethoscope, GraduationCap, Building, MapPin, Briefcase } from 'lucide-react';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 // Mock time slots for a day
 const timeSlots = [
@@ -98,13 +96,17 @@ export default function DoctorProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className='lg:col-span-1'>
                     <Card className="overflow-hidden">
-                        <Image
-                            src={doctor.avatar}
-                            alt={`Portrait of ${doctor.name}`}
-                            width={400}
-                            height={400}
-                            className="w-full h-80 object-cover"
-                        />
+                        {doctor.avatar ? (
+                            <Image
+                                src={doctor.avatar}
+                                alt={`Portrait of ${doctor.name}`}
+                                width={400}
+                                height={400}
+                                className="w-full h-80 object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-80 bg-muted"></div>
+                        )}
                         <CardHeader>
                             <CardTitle className="text-2xl font-headline">{doctor.name}</CardTitle>
                             <CardDescription className='flex items-center gap-2'><Stethoscope className='h-4 w-4'/>{doctor.specialty}</CardDescription>
