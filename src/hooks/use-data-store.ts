@@ -35,6 +35,7 @@ export interface DataState {
   updateOrderStatus: (orderId: string, status: 'approved' | 'declined') => void;
   updateProductStock: (productId: string, newStock: number) => void;
   addProduct: (product: Omit<Product, 'id'>) => void;
+  updateProduct: (productId: string, updatedProduct: Product) => void;
   addDoctor: (doctor: Omit<Doctor, 'id' | 'location' | 'availability' | 'rating' | 'name'> & { fullName: string }) => void;
 }
 
@@ -113,6 +114,13 @@ export const useDataStore = create<DataState>()(
                 },
                 ...state.pharmacyProducts,
             ]
+        })),
+
+       updateProduct: (productId, updatedProduct) =>
+        set((state) => ({
+            pharmacyProducts: state.pharmacyProducts.map(p => 
+                p.id === productId ? { ...p, ...updatedProduct } : p
+            )
         })),
       
       addDoctor: (doctor) =>

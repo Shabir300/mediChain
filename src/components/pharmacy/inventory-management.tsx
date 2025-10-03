@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Product } from '@/lib/data';
 import { useDataStore } from '@/hooks/use-data-store';
@@ -17,32 +17,49 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Plus, Loader2, Upload, X, PackageOpen } from 'lucide-react';
+import { Plus, Loader2, Upload, X } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
-import { Badge } from '../ui/badge';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '../ui/carousel';
 
 const productSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, "Product name is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.coerce.number().min(0.01, "Price must be positive"),
   stock: z.coerce.number().min(0, "Stock can't be negative"),
-  images: z.any().optional(),
+  images: z.array(z.string()).optional(),
 });
 type ProductFormValues = z.infer<typeof productSchema>;
 
 export function InventoryManagement() {
-    const { pharmacyProducts, updateProductStock, addProduct } = useDataStore();
+    const { pharmacyProducts, updateProductStock, addProduct, updateProduct } = useDataStore();
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const { toast } = useToast();
 
-    const form = useForm<ProductFormValues>({
+    const addForm = useForm<ProductFormValues>({
         resolver: zodResolver(productSchema),
-        defaultValues: { name: "", price: 0, stock: 0, description: "" },
+        defaultValues: { name: "", price: 0, stock: 0, description: "", images: [] },
     });
+
+    const editForm = useForm<ProductFormValues>({
+        resolver: zodResolver(productSchema),
+    });
+
+    useEffect(() => {
+        if (editingProduct) {
+            editForm.reset({
+                ...editingProduct,
+                images: editingProduct.images || [],
+            });
+            setImagePreviews(editingProduct.images || []);
+        } else {
+            editForm.reset();
+            setImagePreviews([]);
+        }
+    }, [editingProduct, editForm]);
+
 
     const getImage = (imageIdentifier: string) => {
         if (imageIdentifier.startsWith('data:image')) {
@@ -82,7 +99,7 @@ export function InventoryManagement() {
             price: data.price,
             stock: data.stock,
             description: data.description,
-            images: imagePreviews, // Always pass as an array
+            images: imagePreviews,
         });
         toast({
             title: 'Product Added',
@@ -90,8 +107,24 @@ export function InventoryManagement() {
         });
         setIsSubmitting(false);
         setIsAddDialogOpen(false);
-        form.reset();
+        addForm.reset();
         setImagePreviews([]);
+    }
+
+    const handleEditProduct = (data: ProductFormValues) => {
+        if (!editingProduct) return;
+        setIsSubmitting(true);
+        updateProduct(editingProduct.id, {
+            ...data,
+            id: editingProduct.id,
+            images: imagePreviews,
+        });
+         toast({
+            title: 'Product Updated',
+            description: `${data.name} has been successfully updated.`
+        });
+        setIsSubmitting(false);
+        setEditingProduct(null);
     }
 
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +159,13 @@ export function InventoryManagement() {
                         <CardTitle className='font-headline'>Inventory</CardTitle>
                         <CardDescription>Manage your pharmacy's product stock.</CardDescription>
                     </div>
-                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <Dialog open={isAddDialogOpen} onOpenChange={(isOpen) => {
+                        setIsAddDialogOpen(isOpen);
+                        if (!isOpen) {
+                            addForm.reset();
+                            setImagePreviews([]);
+                        }
+                    }}>
                         <DialogTrigger asChild>
                             <Button><Plus className='mr-2 h-4 w-4'/> Add Product</Button>
                         </DialogTrigger>
@@ -134,25 +173,24 @@ export function InventoryManagement() {
                             <DialogHeader>
                                 <DialogTitle className='font-headline'>Add New Product</DialogTitle>
                             </DialogHeader>
-                            <Form {...form}>
-                                <form onSubmit={form.handleSubmit(handleAddProduct)} className="space-y-4">
-                                    
+                            <Form {...addForm}>
+                                <form onSubmit={addForm.handleSubmit(handleAddProduct)} className="space-y-4">
                                     <FormField
-                                        control={form.control}
+                                        control={addForm.control}
                                         name="images"
                                         render={({ field }) => (
                                             <FormItem>
                                             <FormLabel>Product Images (up to 6)</FormLabel>
                                             <FormControl>
                                                 <div className="relative">
-                                                    <Button asChild variant="outline" disabled={imagePreviews.length >= 6}>
-                                                        <label htmlFor="product-image-upload" className="cursor-pointer">
+                                                    <Button type="button" asChild variant="outline" disabled={imagePreviews.length >= 6}>
+                                                        <label htmlFor="product-image-upload-add" className="cursor-pointer">
                                                             <Upload className="mr-2 h-4 w-4" />
                                                             Upload Images
                                                         </label>
                                                     </Button>
                                                     <Input 
-                                                        id="product-image-upload"
+                                                        id="product-image-upload-add"
                                                         type="file" 
                                                         multiple
                                                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -180,12 +218,12 @@ export function InventoryManagement() {
                                     )}
 
 
-                                <FormField control={form.control} name="name" render={({field}) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)}/>
-                                <FormField control={form.control} name="description" render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)}/>
-                                <FormField control={form.control} name="price" render={({field}) => (<FormItem><FormLabel>Price (PKR)</FormLabel><FormControl><Input type="number" step="0.01" {...field}/></FormControl><FormMessage/></FormItem>)}/>
-                                <FormField control={form.control} name="stock" render={({field}) => (<FormItem><FormLabel>Initial Stock</FormLabel><FormControl><Input type="number" {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                                <FormField control={addForm.control} name="name" render={({field}) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                                <FormField control={addForm.control} name="description" render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                                <FormField control={addForm.control} name="price" render={({field}) => (<FormItem><FormLabel>Price (PKR)</FormLabel><FormControl><Input type="number" step="0.01" {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                                <FormField control={addForm.control} name="stock" render={({field}) => (<FormItem><FormLabel>Initial Stock</FormLabel><FormControl><Input type="number" {...field}/></FormControl><FormMessage/></FormItem>)}/>
                                 <DialogFooter>
-                                        <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
                                     <Button type="submit" disabled={isSubmitting}>
                                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                                             Add Product
@@ -213,7 +251,7 @@ export function InventoryManagement() {
                                 <TableRow key={product.id}>
                                     <TableCell>
                                         <div className='flex items-center gap-4'>
-                                            {imageUrl ? <Image src={imageUrl} alt={product.name} width={40} height={40} className='rounded-md'/> : <div className='h-10 w-10 bg-muted rounded-md' />}
+                                            {imageUrl ? <Image src={imageUrl} alt={product.name} width={40} height={40} className='rounded-md object-cover'/> : <div className='h-10 w-10 bg-muted rounded-md' />}
                                             <span>{product.name}</span>
                                         </div>
                                     </TableCell>
@@ -227,73 +265,89 @@ export function InventoryManagement() {
                                         />
                                     </TableCell>
                                     <TableCell className='text-right'>
-                                        <Button variant="ghost" size="sm" onClick={() => setSelectedProduct(product)}>Details</Button>
+                                        <Button variant="ghost" size="sm" onClick={() => setEditingProduct(product)}>Edit</Button>
                                     </TableCell>
                                 </TableRow>
                             )})}
                         </TableBody>
                     </Table>
                 </CardContent>
-                <CardFooter>
+                 <CardFooter>
                     <p className='text-xs text-muted-foreground'>Total products: {pharmacyProducts.length}</p>
                 </CardFooter>
             </Card>
 
-            <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
+            <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
                 <DialogContent className="max-w-2xl">
-                     {selectedProduct && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle className='font-headline flex items-center gap-2'><PackageOpen/>{selectedProduct.name}</DialogTitle>
-                                <DialogDescription>{selectedProduct.description}</DialogDescription>
-                            </DialogHeader>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                                <Carousel className="w-full">
-                                    <CarouselContent>
-                                        {selectedProduct.images && selectedProduct.images.length > 0 ? (
-                                            selectedProduct.images.map((img, index) => {
-                                                const imageUrl = getImage(img);
-                                                return imageUrl ? (
-                                                    <CarouselItem key={index}>
-                                                        <Image src={imageUrl} alt={`${selectedProduct.name} - image ${index + 1}`} width={400} height={400} className='w-full h-64 object-cover rounded-lg border'/>
-                                                    </CarouselItem>
-                                                ) : null
-                                            })
-                                        ) : (
-                                            <CarouselItem>
-                                                <div className='w-full h-64 bg-muted rounded-lg flex items-center justify-center text-muted-foreground'>No Image</div>
-                                            </CarouselItem>
-                                        )}
-                                    </CarouselContent>
-                                    {selectedProduct.images && selectedProduct.images.length > 1 && (
-                                        <>
-                                            <CarouselPrevious />
-                                            <CarouselNext />
-                                        </>
+                     <DialogHeader>
+                        <DialogTitle className='font-headline'>Edit Product</DialogTitle>
+                        <DialogDescription>Update the details for {editingProduct?.name}.</DialogDescription>
+                    </DialogHeader>
+                    {editingProduct && (
+                        <Form {...editForm}>
+                            <form onSubmit={editForm.handleSubmit(handleEditProduct)} className="space-y-4">
+                                
+                                <FormField
+                                    control={editForm.control}
+                                    name="images"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Product Images (up to 6)</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Button type="button" asChild variant="outline" disabled={imagePreviews.length >= 6}>
+                                                    <label htmlFor="product-image-upload-edit" className="cursor-pointer">
+                                                        <Upload className="mr-2 h-4 w-4" />
+                                                        Upload Images
+                                                    </label>
+                                                </Button>
+                                                <Input 
+                                                    id="product-image-upload-edit"
+                                                    type="file" 
+                                                    multiple
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    accept="image/*"
+                                                    onChange={handleImageChange}
+                                                    disabled={imagePreviews.length >= 6}
+                                                />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
                                     )}
-                                </Carousel>
-                                <div className="space-y-4">
-                                    <div>
-                                        <h4 className="font-semibold text-sm text-muted-foreground">Price</h4>
-                                        <p className="text-lg font-bold">PKR {selectedProduct.price.toFixed(2)}</p>
+                                />
+                                {imagePreviews.length > 0 && (
+                                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                        {imagePreviews.map((src, index) => {
+                                            const imageUrl = getImage(src);
+                                            return (
+                                            <div key={index} className="relative">
+                                                {imageUrl && <Image src={imageUrl} alt={`Preview ${index + 1}`} width={100} height={100} className="w-full h-24 object-cover rounded-md" />}
+                                                <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        )})}
                                     </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm text-muted-foreground">Current Stock</h4>
-                                        <p className="text-lg font-bold">{selectedProduct.stock} units</p>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-sm text-muted-foreground">Product ID</h4>
-                                        <p className="text-xs text-muted-foreground font-mono">{selectedProduct.id}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                     )}
+                                )}
+
+
+                            <FormField control={editForm.control} name="name" render={({field}) => (<FormItem><FormLabel>Product Name</FormLabel><FormControl><Input {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                            <FormField control={editForm.control} name="description" render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                            <FormField control={editForm.control} name="price" render={({field}) => (<FormItem><FormLabel>Price (PKR)</FormLabel><FormControl><Input type="number" step="0.01" {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                            <FormField control={editForm.control} name="stock" render={({field}) => (<FormItem><FormLabel>Current Stock</FormLabel><FormControl><Input type="number" {...field}/></FormControl><FormMessage/></FormItem>)}/>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setEditingProduct(null)}>Cancel</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                        Save Changes
+                                </Button>
+                            </DialogFooter>
+                            </form>
+                        </Form>
+                    )}
                 </DialogContent>
             </Dialog>
         </>
     );
 }
-
-
-    
