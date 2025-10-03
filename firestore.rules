@@ -70,7 +70,8 @@ service cloud.firestore {
 
       allow get: if true;
       allow list: if true;
-      allow create: if false;
+      allow read;
+      allow create, update: if request.auth.uid == doctorId;
       allow update: if isExistingOwner(doctorId) && request.resource.data.uid == resource.data.uid;
       allow delete: if false;
     }

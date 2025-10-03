@@ -126,7 +126,7 @@ export default function ProfileForm() {
             dataToSave = {
                 ...doctorProfile,
                 ...data,
-                avatar: avatarUrl,
+                // avatar: avatarUrl,
             };
         } else {
             // Creating a new profile
