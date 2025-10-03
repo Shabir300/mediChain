@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, User } from 'lucide-react';
+import { useDataStore } from '@/hooks/use-data-store';
 
 const symptomSchema = z.object({
   symptomDescription: z.string().min(10, { message: 'Please describe your symptoms in at least 10 characters.' }),
@@ -23,6 +24,7 @@ interface ChatMessage {
 }
 
 export function SymptomChecker() {
+  const { medicalRecords } = useDataStore();
   const [isLoading, setIsLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
@@ -34,9 +36,16 @@ export function SymptomChecker() {
     setIsLoading(true);
     const userMessage: ChatMessage = { sender: 'user', text: data.symptomDescription };
     setChatHistory(prev => [...prev, userMessage]);
+    
+    const historyText = chatHistory.map(msg => `${msg.sender === 'user' ? 'Patient' : 'AI Assistant'}: ${msg.text}`).join('\n');
+    const medicalHistoryText = medicalRecords.map(rec => `${rec.type} - ${rec.fileName} (${rec.uploadDate})`).join('; ');
 
     try {
-      const result = await symptomChecker({ symptomDescription: data.symptomDescription });
+      const result = await symptomChecker({ 
+          symptomDescription: data.symptomDescription,
+          chatHistory: historyText,
+          medicalHistory: medicalHistoryText,
+      });
       const aiMessage: ChatMessage = { sender: 'ai', text: result.guidance };
       setChatHistory(prev => [...prev, aiMessage]);
     } catch (error) {
