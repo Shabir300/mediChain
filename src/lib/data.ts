@@ -7,12 +7,56 @@ export interface Doctor {
   location: 'Nearby' | 'In City';
   availability: 'Online' | 'Offline';
   rating: number;
+  bio: string;
+  education: string;
+  clinicName: string;
+  address: string;
+  previousExperience: string;
 }
 
 export const doctors: Doctor[] = [
-  { id: '1', name: 'Dr. Evelyn Reed', specialty: 'Cardiologist', avatar: 'doctor-1', location: 'Nearby', availability: 'Online', rating: 4.8 },
-  { id: '2', name: 'Dr. Samuel Chen', specialty: 'Pediatrician', avatar: 'doctor-2', location: 'In City', availability: 'Online', rating: 4.9 },
-  { id: '3', name: 'Dr. Aisha Khan', specialty: 'Dermatologist', avatar: 'doctor-3', location: 'Nearby', availability: 'Offline', rating: 4.7 },
+  { 
+    id: '1', 
+    name: 'Dr. Evelyn Reed', 
+    specialty: 'Cardiologist', 
+    avatar: 'doctor-1', 
+    location: 'Nearby', 
+    availability: 'Online', 
+    rating: 4.8,
+    bio: 'Dr. Reed is a board-certified cardiologist with over 15 years of experience in treating complex heart conditions. She is dedicated to providing compassionate and comprehensive care.',
+    education: "MD in Cardiology, Stanford University",
+    clinicName: "HeartCare Center",
+    address: "123 Health St., Medville, USA",
+    previousExperience: "10 years at General Hospital"
+  },
+  { 
+    id: '2', 
+    name: 'Dr. Samuel Chen', 
+    specialty: 'Pediatrician', 
+    avatar: 'doctor-2', 
+    location: 'In City', 
+    availability: 'Online', 
+    rating: 4.9,
+    bio: 'Dr. Chen is a friendly and experienced pediatrician committed to the health and well-being of children from infancy through adolescence.',
+    education: "Pediatrics Residency, Johns Hopkins",
+    clinicName: "KidsHealth Clinic",
+    address: "456 Wellness Ave., Medville, USA",
+    previousExperience: "5 years at City Pediatrics"
+  },
+  { 
+    id: '3', 
+    name: 'Dr. Aisha Khan', 
+    specialty: 'Dermatologist', 
+    avatar: 'doctor-3', 
+    location: 'Nearby', 
+    availability: 'Offline', 
+    rating: 4.7,
+    bio: 'Dr. Khan specializes in both medical and cosmetic dermatology, offering a wide range of treatments to help you achieve healthy, beautiful skin.',
+    education: "Dermatology, Mayo Clinic",
+    clinicName: "The Skin Institute",
+    address: "789 Derma Rd., Medville, USA",
+    previousExperience: "Lead Dermatologist at Radiant Skin"
+  },
 ];
 
 export interface Patient {

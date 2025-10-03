@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -67,11 +68,13 @@ export default function ProfileForm() {
     if (!user) return;
     
     addDoctor({
-        name: data.fullName,
+        fullName: data.fullName,
         specialty: data.specialty,
-        // The other fields like bio, education etc. would be stored
-        // in a more detailed doctor object in a real database.
-        // For this demo, we are only adding the core fields to the list.
+        bio: data.bio,
+        education: data.education,
+        clinicName: data.clinicName,
+        address: data.address,
+        previousExperience: data.previousExperience,
     });
 
     toast({

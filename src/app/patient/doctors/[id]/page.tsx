@@ -31,14 +31,6 @@ const timeSlots = [
     "04:00 PM", "04:30 PM"
 ];
 
-// Mock detailed data, in a real app this would come from the backend
-const doctorDetails: any = {
-    '1': { education: "MD in Cardiology, Stanford University", clinicName: "HeartCare Center", address: "123 Health St.", city: "Medville", country: "USA", previousExperience: "10 years at General Hospital" },
-    '2': { education: "Pediatrics Residency, Johns Hopkins", clinicName: "KidsHealth Clinic", address: "456 Wellness Ave.", city: "Medville", country: "USA", previousExperience: "5 years at City Pediatrics" },
-    '3': { education: "Dermatology, Mayo Clinic", clinicName: "The Skin Institute", address: "789 Derma Rd.", city: "Medville", country: "USA", previousExperience: "Lead Dermatologist at Radiant Skin" },
-}
-
-
 export default function DoctorProfilePage() {
     const params = useParams();
     const doctorId = params.id as string;
@@ -51,7 +43,6 @@ export default function DoctorProfilePage() {
     const { toast } = useToast();
     
     const doctor = doctors.find(d => d.id === doctorId);
-    const details = doctorDetails[doctorId];
 
     if (!doctor) {
         notFound();
@@ -138,32 +129,33 @@ export default function DoctorProfilePage() {
                             <CardDescription>Learn more about {doctor.name}'s background and expertise.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6 text-sm">
+                           <p className="text-muted-foreground">{doctor.bio}</p>
                            <div className="flex items-center">
                                 <GraduationCap className="h-5 w-5 mr-3 text-primary"/>
                                 <div>
                                     <p className="font-semibold text-muted-foreground">Education</p>
-                                    <p>{details.education}</p>
+                                    <p>{doctor.education}</p>
                                 </div>
                            </div>
                            <div className="flex items-center">
                                 <Building className="h-5 w-5 mr-3 text-primary"/>
                                 <div>
                                     <p className="font-semibold text-muted-foreground">Clinic</p>
-                                    <p>{details.clinicName}</p>
+                                    <p>{doctor.clinicName}</p>
                                 </div>
                            </div>
                            <div className="flex items-center">
                                 <MapPin className="h-5 w-5 mr-3 text-primary"/>
                                 <div>
                                     <p className="font-semibold text-muted-foreground">Address</p>
-                                    <p>{details.address}, {details.city}, {details.country}</p>
+                                    <p>{doctor.address}</p>
                                 </div>
                            </div>
                            <div className="flex items-center">
                                 <Briefcase className="h-5 w-5 mr-3 text-primary"/>
                                 <div>
                                     <p className="font-semibold text-muted-foreground">Previous Experience</p>
-                                    <p>{details.previousExperience}</p>
+                                    <p>{doctor.previousExperience}</p>
                                 </div>
                            </div>
                         </CardContent>
