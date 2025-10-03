@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -6,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { useAuth, useFirestore, useDoc } from "@/firebase"
-import { doc, setDoc, getDoc } from "firebase/firestore"
+import { doc, setDoc } from "firebase/firestore"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import {
@@ -91,11 +92,7 @@ export default function ProfileForm() {
     if (!user || !firestore || !doctorProfileRef) return;
 
     try {
-        const docSnap = await getDoc(doctorProfileRef);
-        const existingData = docSnap.exists() ? docSnap.data() : {};
-
         const dataToSave = {
-            ...existingData,
             uid: user.uid,
             email: user.email,
             fullName: data.fullName,
@@ -106,12 +103,13 @@ export default function ProfileForm() {
             address: data.address,
             previousExperience: data.previousExperience,
             avatar: avatarPreview || '',
-            location: existingData.location || 'In City',
-            availability: existingData.availability || 'Online',
-            rating: existingData.rating || 4.5,
+            location: 'In City',
+            availability: 'Online',
+            rating: 4.5,
         };
 
-        await setDoc(doctorProfileRef, dataToSave);
+        // Use setDoc with merge:true to create or update.
+        await setDoc(doctorProfileRef, dataToSave, { merge: true });
 
         toast({
             title: "Profile Saved",

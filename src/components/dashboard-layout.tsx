@@ -99,14 +99,14 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
     if (!loading) {
       setIsInitialLoad(false);
       if (!user) {
-        router.push('/');
+        router.replace('/');
       } else if (user.role && user.role !== requiredRole) {
         toast({
           variant: 'destructive',
           title: 'Access Denied',
           description: 'You do not have permission to view this page.',
         });
-        router.push('/');
+        router.replace(`/${user.role}`); // Redirect to their own dashboard
       }
     }
   }, [user, loading, router, requiredRole, toast]);
@@ -130,7 +130,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   const currentUser = user;
   const userRole = currentUser?.role;
 
-  if (isInitialLoad && loading) {
+  if (isInitialLoad || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -141,18 +141,6 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
     );
   }
   
-  if (!user) {
-     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Logo />
-          <p className="text-muted-foreground flex items-center gap-2 mt-4">Redirecting to login...</p>
-        </div>
-      </div>
-    );
-  }
-
-
   const getNavItems = () => {
     switch (userRole) {
       case 'patient': return patientNavItems;
