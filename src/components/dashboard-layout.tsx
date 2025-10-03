@@ -54,8 +54,6 @@ import { DoctorAiSheet } from './doctor/doctor-ai-sheet';
 import { PharmacyAiSheet } from './pharmacy/pharmacy-ai-sheet';
 import { ToastAction } from './ui/toast';
 import { MedicationReminder } from './patient/medication-reminder';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
 
 interface NavItem {
   href: string;
@@ -91,21 +89,17 @@ const pharmacyNavItems: NavItem[] = [
 
 export function DashboardLayout({ children, requiredRole }: { children: React.ReactNode; requiredRole: 'patient' | 'doctor' | 'pharmacy' }) {
   const { user, signOut, loading } = useAuth();
-  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const { toast, dismiss } = useToast();
 
   useEffect(() => {
-    // For demo users, the user object will have a uid starting with 'demo-'
-    const isDemoUser = user?.uid.startsWith('demo-');
-
     if (!loading && !user) {
       router.push('/');
       return;
     }
     
-    if (user && user.role !== requiredRole) {
+    if (user && user.role && user.role !== requiredRole) {
        toast({
           variant: "destructive",
           title: "Access Denied",
@@ -113,24 +107,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
        });
        router.push('/');
     }
-
-    if(user && !isDemoUser && firestore) {
-        const checkUserDoc = async () => {
-            const userDocRef = doc(firestore, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (!userDoc.exists()) {
-                // If no user doc, they shouldn't be here
-                toast({
-                    variant: "destructive",
-                    title: "Authentication Error",
-                    description: "Could not find your user profile. Please log in again.",
-                });
-                handleLogout();
-            }
-        }
-        checkUserDoc();
-    }
-  }, [user, loading, router, requiredRole, firestore]);
+  }, [user, loading, router, requiredRole]);
 
   const handleLogout = async () => {
     await signOut();
