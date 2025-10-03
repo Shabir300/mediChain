@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, MessageCircle, User } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useDataStore } from '@/hooks/use-data-store';
 
 const symptomSchema = z.object({
@@ -66,17 +65,17 @@ export function PatientAiSheet() {
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
         <Button className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg" size="icon">
             <Bot className="h-8 w-8"/>
             <span className="sr-only">Open AI Assistant</span>
         </Button>
-      </SheetTrigger>
-      <SheetContent className="flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="font-headline flex items-center gap-2"><Bot /> AI Assistant</SheetTitle>
-        </SheetHeader>
+      </DialogTrigger>
+      <DialogContent className="flex flex-col h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="font-headline flex items-center gap-2"><Bot /> AI Assistant</DialogTitle>
+        </DialogHeader>
         <div className="flex-1 space-y-4 overflow-y-auto rounded-md border bg-muted/50 p-4 my-4">
             {chatHistory.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
@@ -129,7 +128,7 @@ export function PatientAiSheet() {
             </Button>
         </form>
         </Form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
