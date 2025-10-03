@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { FirebaseClientProvider } from '@/firebase';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
