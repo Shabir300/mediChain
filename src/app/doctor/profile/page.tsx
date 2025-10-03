@@ -93,7 +93,8 @@ export default function ProfileForm() {
 
     try {
         const dataToSave = {
-            uid: user.uid,
+            ...doctorProfile, // Start with existing data to ensure merge works correctly
+            uid: user.uid, // ALWAYS include the UID
             email: user.email,
             fullName: data.fullName,
             specialty: data.specialty,
@@ -102,10 +103,10 @@ export default function ProfileForm() {
             clinicName: data.clinicName,
             address: data.address,
             previousExperience: data.previousExperience,
-            avatar: avatarPreview || '',
-            location: 'In City',
-            availability: 'Online',
-            rating: 4.5,
+            avatar: avatarPreview || doctorProfile?.avatar || '',
+            location: doctorProfile?.location || 'In City',
+            availability: doctorProfile?.availability || 'Online',
+            rating: doctorProfile?.rating || 4.5,
         };
 
         // Use setDoc with merge:true to create or update.
