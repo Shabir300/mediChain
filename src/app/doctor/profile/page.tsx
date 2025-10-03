@@ -45,8 +45,6 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>
 
-// Firestore's document size limit is 1 MiB (1,048,576 bytes).
-// We'll use a slightly smaller limit to be safe.
 const MAX_AVATAR_SIZE = 1000000;
 
 export default function ProfileForm() {
@@ -105,30 +103,20 @@ export default function ProfileForm() {
     try {
         let avatarUrl = avatarPreview;
 
-        // Handle oversized image
         if (avatarPreview && avatarPreview.length > MAX_AVATAR_SIZE) {
             toast({
                 variant: "destructive",
                 title: "Image Too Large",
                 description: "Profile picture is too large and will not be saved. Please choose a smaller file.",
             });
-            // If image is too large, use the old one if it exists, otherwise revert to null
             avatarUrl = doctorProfile?.avatar || null;
         }
 
-        // Prepare the data to save
         const dataToSave = {
-            uid: user.uid, // Always include UID
-            email: user.email, // Always include email
-            fullName: data.fullName,
-            specialty: data.specialty,
-            bio: data.bio,
-            education: data.education,
-            clinicName: data.clinicName,
-            address: data.address,
-            previousExperience: data.previousExperience,
+            ...data,
+            uid: user.uid,
+            email: user.email,
             avatar: avatarUrl,
-            // Provide defaults for existing or new profiles
             location: doctorProfile?.location || 'In City',
             availability: doctorProfile?.availability || 'Online',
             rating: doctorProfile?.rating || 4.5,
@@ -145,7 +133,7 @@ export default function ProfileForm() {
         toast({
             variant: "destructive",
             title: "Error Saving Profile",
-            description: error.message || "An unknown error occurred. Please check the console for details.",
+            description: error.message || "An unknown error occurred. Please try again.",
         });
     }
   }
@@ -162,7 +150,7 @@ export default function ProfileForm() {
                 title: "Image Too Large",
                 description: `The selected image is too large and will not be saved. Please select a file smaller than 1MB.`,
             });
-             setAvatarPreview(result); // Show preview but it will be rejected on submit
+             setAvatarPreview(result);
              return;
         }
         setAvatarPreview(result);
