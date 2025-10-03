@@ -69,6 +69,10 @@ export default function LoginPage() {
             demoUser = { uid: 'patient-test-id', email: 'patient@test.com', displayName: 'Test Patient', role: 'patient' };
         } else if (data.email === 'doctor@test.com') {
             demoUser = { uid: 'doctor-test-id', email: 'doctor@test.com', displayName: 'Test Doctor', role: 'doctor' };
+        } else if (data.email === 'doctor2@test.com') {
+            demoUser = { uid: 'doctor2-test-id', email: 'doctor2@test.com', displayName: 'Dr. Evelyn Reed', role: 'doctor' };
+        } else if (data.email === 'doctor3@test.com') {
+            demoUser = { uid: 'doctor3-test-id', email: 'doctor3@test.com', displayName: 'Dr. Samuel Chen', role: 'doctor' };
         } else if (data.email === 'pharmacy1@test.com') {
             demoUser = { uid: 'pharmacy1-test-id', email: 'pharmacy1@test.com', displayName: 'CureLink Pharmacy', role: 'pharmacy', pharmacyName: 'CureLink Pharmacy' };
         } else if (data.email === 'pharmacy2@test.com') {
