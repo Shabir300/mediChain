@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Loader2, MessageCircle, User } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useDataStore } from '@/hooks/use-data-store';
 
 const symptomSchema = z.object({
@@ -65,17 +65,17 @@ export function PatientAiSheet() {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+      <SheetTrigger asChild>
         <Button className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg" size="icon">
             <Bot className="h-8 w-8"/>
             <span className="sr-only">Open AI Assistant</span>
         </Button>
-      </DialogTrigger>
-      <DialogContent className="flex flex-col h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="font-headline flex items-center gap-2"><Bot /> AI Assistant</DialogTitle>
-        </DialogHeader>
+      </SheetTrigger>
+      <SheetContent className="flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="font-headline flex items-center gap-2"><Bot /> AI Assistant</SheetTitle>
+        </SheetHeader>
         <div className="flex-1 space-y-4 overflow-y-auto rounded-md border bg-muted/50 p-4 my-4">
             {chatHistory.length === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground">
@@ -87,7 +87,7 @@ export function PatientAiSheet() {
                 chatHistory.map((msg, index) => (
                     <div key={index} className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : ''}`}>
                          {msg.sender === 'ai' && <Bot className="h-6 w-6 shrink-0 text-accent" />}
-                        <div className={`max-w-xs rounded-lg p-3 ${msg.sender === 'user' ? 'bg-primary/80 text-primary-foreground' : 'bg-background'}`}>
+                        <div className={`max-w-xs rounded-lg p-3 ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-background'}`}>
                            <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                         </div>
                         {msg.sender === 'user' && <User className="h-6 w-6 shrink-0" />}
@@ -128,7 +128,7 @@ export function PatientAiSheet() {
             </Button>
         </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
