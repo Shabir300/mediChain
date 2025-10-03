@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { useAuth, useFirestore, useDoc } from "@/firebase"
-import { doc, setDoc } from "firebase/firestore"
+import { doc, setDoc, getDoc } from "firebase/firestore"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import {
@@ -88,10 +88,14 @@ export default function ProfileForm() {
 
 
   async function onSubmit(data: ProfileFormValues) {
-    if (!user || !firestore) return;
-    
+    if (!user || !firestore || !doctorProfileRef) return;
+
     try {
-        await setDoc(doctorProfileRef, {
+        const docSnap = await getDoc(doctorProfileRef);
+        const existingData = docSnap.exists() ? docSnap.data() : {};
+
+        const dataToSave = {
+            ...existingData,
             uid: user.uid,
             email: user.email,
             fullName: data.fullName,
@@ -102,11 +106,12 @@ export default function ProfileForm() {
             address: data.address,
             previousExperience: data.previousExperience,
             avatar: avatarPreview || '',
-            // Default values for new profiles if not already set
-            location: doctorProfile?.location || 'In City',
-            availability: doctorProfile?.availability || 'Online',
-            rating: doctorProfile?.rating || 4.5,
-        }, { merge: true });
+            location: existingData.location || 'In City',
+            availability: existingData.availability || 'Online',
+            rating: existingData.rating || 4.5,
+        };
+
+        await setDoc(doctorProfileRef, dataToSave);
 
         toast({
             title: "Profile Saved",
@@ -297,5 +302,3 @@ export default function ProfileForm() {
     </DashboardLayout>
   )
 }
-
-    
