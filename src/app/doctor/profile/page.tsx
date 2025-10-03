@@ -101,26 +101,38 @@ export default function ProfileForm() {
     }
 
     try {
-        let avatarUrl = avatarPreview;
-
-        if (avatarPreview && avatarPreview.length > MAX_AVATAR_SIZE) {
-            toast({
-                variant: "destructive",
-                title: "Image Too Large",
-                description: "Profile picture is too large and will not be saved. Please choose a smaller file.",
-            });
-            avatarUrl = doctorProfile?.avatar || null;
+        let avatarUrl = doctorProfile?.avatar || null;
+        if (avatarPreview) {
+            if (avatarPreview.length > MAX_AVATAR_SIZE) {
+                 toast({
+                    variant: "destructive",
+                    title: "Image Too Large",
+                    description: "Profile picture is too large and will not be saved. Please choose a smaller file.",
+                });
+                avatarUrl = doctorProfile?.avatar || null;
+            } else {
+                avatarUrl = avatarPreview;
+            }
         }
-
-        const dataToSave = {
-            ...data,
-            uid: user.uid,
-            email: user.email,
-            avatar: avatarUrl,
-            location: doctorProfile?.location || 'In City',
-            availability: doctorProfile?.availability || 'Online',
-            rating: doctorProfile?.rating || 4.5,
-        };
+        
+        // If a doctor profile already exists, merge new data with existing data.
+        // Otherwise, create a new profile with default values.
+        const dataToSave = doctorProfile 
+            ? {
+                ...data,
+                avatar: avatarUrl,
+                uid: user.uid,
+                email: user.email,
+             }
+            : {
+                ...data,
+                uid: user.uid,
+                email: user.email,
+                avatar: avatarUrl,
+                location: 'In City',
+                availability: 'Online',
+                rating: 4.5,
+             };
         
         await setDoc(doctorProfileRef, dataToSave, { merge: true });
 
@@ -144,15 +156,6 @@ export default function ProfileForm() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        if (result.length > MAX_AVATAR_SIZE) {
-             toast({
-                variant: "destructive",
-                title: "Image Too Large",
-                description: `The selected image is too large and will not be saved. Please select a file smaller than 1MB.`,
-            });
-             setAvatarPreview(result);
-             return;
-        }
         setAvatarPreview(result);
       };
       reader.readAsDataURL(file);
