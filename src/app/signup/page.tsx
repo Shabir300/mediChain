@@ -80,12 +80,28 @@ export default function SignupPage() {
 
         await setDoc(userDocRef, userData);
         
-        // Step 3: Notify user and redirect
+        // Step 3: Notify user and redirect to the correct dashboard
         toast({
           title: 'Signup Successful',
-          description: 'Your account has been created. Please log in.',
+          description: 'Your account has been created. Redirecting...',
         });
-        router.push('/');
+        
+        // Redirect based on role
+        switch(data.role) {
+            case 'patient':
+                router.push('/patient');
+                break;
+            case 'doctor':
+                router.push('/doctor');
+                break;
+            case 'pharmacy':
+                router.push('/pharmacy');
+                break;
+            default:
+                router.push('/'); // Fallback to login
+                break;
+        }
+
       } else {
         throw new Error("Account was not created in Firebase Authentication.");
       }
