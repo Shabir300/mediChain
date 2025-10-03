@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -61,10 +62,12 @@ export default function SignupPage() {
     try {
       const userCredential = await signUp(data.email, data.password);
       const user = userCredential?.user;
+      
       if (user) {
-        
+        // Step 1: Update the user's auth profile
         await updateProfile(user, { displayName: data.fullName });
 
+        // Step 2: Create the user document in Firestore
         const userDocRef = doc(firestore, 'users', user.uid);
         const userData = {
           uid: user.uid,
@@ -76,18 +79,23 @@ export default function SignupPage() {
 
         await setDoc(userDocRef, userData);
         
+        // Step 3: Notify user and redirect
         toast({
           title: 'Signup Successful',
           description: 'Your account has been created. Please log in.',
         });
         router.push('/');
+      } else {
+        throw new Error("Account was not created in Firebase Authentication.");
       }
     } catch (error: any) {
       console.error('Signup Error:', error);
       toast({
         variant: 'destructive',
         title: 'Signup Failed',
-        description: error.message || 'An error occurred during signup.',
+        description: error.code === 'auth/email-already-in-use' 
+            ? 'This email address is already in use. Please try logging in.'
+            : (error.message || 'An error occurred during signup.'),
       });
     }
   };
