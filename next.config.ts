@@ -5,11 +5,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  experimental: {
-    // This is to allow cross-origin requests in development,
-    // which is needed for the Firebase Studio environment.
-    allowedDevOrigins: ["https://*.cloudworkstations.dev"],
-  },
+  // This is to allow cross-origin requests in development,
+  // which is needed for the Firebase Studio environment.
+  allowedDevOrigins: ["https://*.cloudworkstations.dev"],
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -28,7 +26,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https_val',
+        protocol: 'https',
         hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
