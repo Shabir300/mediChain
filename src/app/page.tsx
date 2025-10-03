@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -13,6 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -21,46 +24,58 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+// Temporary demo users
+const demoUsers = {
+    'patient@test.com': { role: 'patient', displayName: 'Demo Patient' },
+    'doctor@test.com': { role: 'doctor', displayName: 'Demo Doctor' },
+    'pharmacy@test.com': { role: 'pharmacy', displayName: 'Demo Pharmacy' },
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signIn, signOut, loading } = useAuth();
+  const { user, signIn, signOut: firebaseSignOut, loading } = useAuth();
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [isClient, setIsClient] = useState(false);
+  const [localUser, setLocalUser] = useState<any>(null); // For demo purposes
+
+  const signOut = () => {
+    firebaseSignOut();
+    setLocalUser(null);
+  }
 
   useEffect(() => {
     setIsClient(true);
-    if(isClient) {
-      // Ensure any previous session is cleared on page load, per user request.
-      signOut();
-    }
-  }, [isClient, signOut]);
+    // Ensure any previous session is cleared on page load
+    signOut();
+  }, []);
 
   useEffect(() => {
-    // This effect handles the redirection logic.
-    // It will only run on the client-side after hydration.
-    if (!loading && user && user.role && isClient) {
-        switch (user.role) {
-            case 'patient':
-                router.push('/patient');
-                break;
-            case 'doctor':
-                router.push('/doctor');
-                break;
-            case 'pharmacy':
-                router.push('/pharmacy');
-                break;
-            default:
-                // Handle cases where the role is not recognized
-                toast({
-                    variant: 'destructive',
-                    title: 'Login Failed',
-                    description: 'Your user role is not recognized. Please contact support.',
-                });
-                signOut(); // Sign out the user if the role is invalid
-                break;
+    if (!loading && (user || localUser) && isClient) {
+      const currentUser = localUser || user;
+      if (currentUser && currentUser.role) {
+        switch (currentUser.role) {
+          case 'patient':
+            router.push('/patient');
+            break;
+          case 'doctor':
+            router.push('/doctor');
+            break;
+          case 'pharmacy':
+            router.push('/pharmacy');
+            break;
+          default:
+            toast({
+              variant: 'destructive',
+              title: 'Login Failed',
+              description: 'Your user role is not recognized. Please contact support.',
+            });
+            signOut();
+            break;
         }
+      }
     }
-  }, [user, loading, isClient, router, toast, signOut]);
+  }, [user, localUser, loading, isClient, router, toast]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -71,12 +86,36 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    // Demo user login
+    if (data.email in demoUsers && data.password === 'password') {
+        const demoUser = demoUsers[data.email as keyof typeof demoUsers];
+        setLocalUser({
+            uid: `demo-${demoUser.role}`,
+            email: data.email,
+            displayName: demoUser.displayName,
+            role: demoUser.role,
+        });
+        toast({
+            title: 'Login Successful',
+            description: `Welcome back, ${demoUser.displayName}! Redirecting...`,
+        });
+        return;
+    }
+
+    // Real Firebase login
     try {
-      await signIn(data.email, data.password);
-      toast({
-          title: 'Login Successful',
-          description: `Welcome back! Redirecting...`,
-      });
+      const userCredential = await signIn(data.email, data.password);
+      if (userCredential.user && firestore) {
+          const userDoc = await getDoc(doc(firestore, "users", userCredential.user.uid));
+          if (userDoc.exists()) {
+              toast({
+                  title: 'Login Successful',
+                  description: `Welcome back! Redirecting...`,
+              });
+          } else {
+              throw new Error("User document not found.");
+          }
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -86,31 +125,28 @@ export default function LoginPage() {
     }
   };
 
-  if (!isClient || loading) {
-    // Show a loading screen while Firebase is initializing or if not on client
+  if (!isClient || (loading && !localUser)) {
     return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4">
-                <Logo />
-                <p className="text-muted-foreground">Loading...</p>
-            </div>
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Logo />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
+      </div>
     );
   }
   
-  if (user) {
-    // If a user is logged in but redirection hasn't happened yet, show a redirecting screen.
+  if (user || localUser) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-          <div className="flex flex-col items-center gap-4">
-              <Logo />
-              <p className="text-muted-foreground">Redirecting...</p>
-          </div>
+        <div className="flex flex-col items-center gap-4">
+          <Logo />
+          <p className="text-muted-foreground">Redirecting...</p>
+        </div>
       </div>
     );
   }
 
-  // If no user is logged in and not loading, show the login form.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-2xl">

@@ -95,30 +95,41 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   const router = useRouter();
   const pathname = usePathname();
   const { toast, dismiss } = useToast();
-  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkUserRole = async () => {
-      if (!loading && !user) {
-        router.push('/');
-        return;
-      }
-      if (user && firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const role = userDoc.data().role;
-          setUserRole(role);
-          if (role !== requiredRole) {
-            router.push('/');
-          }
-        } else {
-            // If no user doc, they shouldn't be here
-            router.push('/');
+    // For demo users, the user object will have a uid starting with 'demo-'
+    const isDemoUser = user?.uid.startsWith('demo-');
+
+    if (!loading && !user) {
+      router.push('/');
+      return;
+    }
+    
+    if (user && user.role !== requiredRole) {
+       toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "You do not have permission to view this page.",
+       });
+       router.push('/');
+    }
+
+    if(user && !isDemoUser && firestore) {
+        const checkUserDoc = async () => {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (!userDoc.exists()) {
+                // If no user doc, they shouldn't be here
+                toast({
+                    variant: "destructive",
+                    title: "Authentication Error",
+                    description: "Could not find your user profile. Please log in again.",
+                });
+                handleLogout();
+            }
         }
-      }
-    };
-    checkUserRole();
+        checkUserDoc();
+    }
   }, [user, loading, router, requiredRole, firestore]);
 
   const handleLogout = async () => {
@@ -136,11 +147,14 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
       });
   };
 
-  if (loading || !user || !userRole) {
+  const currentUser = user;
+  const userRole = currentUser?.role;
+
+  if (loading || !currentUser) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Logo />
-        <p className="ml-4 text-muted-foreground">Loading...</p>
+        <p className="ml-4 text-muted-foreground">Verifying access...</p>
       </div>
     );
   }
@@ -159,6 +173,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
           case 'patient': return <UserIcon className="h-5 w-5 text-muted-foreground" />;
           case 'doctor': return <Stethoscope className="h-5 w-5 text-muted-foreground" />;
           case 'pharmacy': return <Building className="h-5 w-5 text-muted-foreground" />;
+          default: return null;
       }
   };
 
@@ -212,7 +227,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{currentUser.email?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -223,7 +238,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
                     <p className="text-sm font-medium leading-none capitalize">{userRole}</p>
                   </div>
                   <p className="text-xs leading-none text-muted-foreground mt-1">
-                    {user.email}
+                    {currentUser.email}
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
