@@ -121,10 +121,6 @@ export default function DoctorProfilePage() {
                         <CardHeader>
                             <div className='flex justify-between items-start'>
                                 <CardTitle className="text-2xl font-headline">{doctor.name}</CardTitle>
-                                <div className='flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full text-sm'>
-                                    <Star className='h-4 w-4 fill-amber-500' />
-                                    <span>{doctor.rating.toFixed(1)}</span>
-                                </div>
                             </div>
                             <CardDescription className='flex items-center gap-2'><Stethoscope className='h-4 w-4'/>{doctor.specialty}</CardDescription>
                         </CardHeader>
