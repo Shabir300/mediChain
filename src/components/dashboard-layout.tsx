@@ -203,6 +203,14 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {user.role === 'doctor' && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/doctor/profile">
+                      <UserIcon className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
