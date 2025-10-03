@@ -84,6 +84,8 @@ const doctorNavItems: NavItem[] = [
 
 const pharmacyNavItems: NavItem[] = [
   { href: '/pharmacy', icon: Home, label: 'Dashboard' },
+  { href: '/pharmacy/orders', icon: ShoppingCart, label: 'Incoming Orders' },
+  { href: '/pharmacy/inventory', icon: Package, label: 'Inventory' },
 ];
 
 export function DashboardLayout({ children, requiredRole }: { children: React.ReactNode; requiredRole: 'patient' | 'doctor' | 'pharmacy' }) {
