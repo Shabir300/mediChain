@@ -3,43 +3,77 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Product, Order } from '@/lib/data';
-import { useDataStore } from '@/hooks/use-data-store';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useAuth, useFirestore, useCollection } from '@/firebase';
+import { collectionGroup, query, where, addDoc, collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Search, ShoppingCart, Minus, Plus, X } from 'lucide-react';
+import { Search, ShoppingCart, Minus, Plus, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
 
+// Corresponds to the Firestore Product entity
+export interface Product {
+    id: string;
+    pharmacyId: string;
+    pharmacyName: string;
+    name: string;
+    description: string;
+    price: number;
+    stock: number;
+    images: string[];
+}
+
+// Corresponds to the Firestore Order entity
+export interface Order {
+    id: string;
+    patientId: string;
+    pharmacyId: string;
+    items: {
+        productId: string;
+        name: string;
+        quantity: number;
+    }[];
+    total: number;
+    status: 'pending' | 'approved' | 'declined';
+    date: string;
+}
+
+
 interface CartItem extends Product {
   quantity: number;
 }
 
-interface PatientStock extends Product {
-    patientStock: number;
-}
-
 export function MyOrders() {
-  const { pharmacyProducts, orders, addOrder } = useDataStore();
+  const { user } = useAuth();
+  const firestore = useFirestore();
+  
+  // Query for all products across all pharmacies
+  const allProductsQuery = firestore ? query(collectionGroup(firestore, 'products')) : null;
+  const { data: allProducts, loading: productsLoading } = useCollection<Product>(allProductsQuery);
+
+  // Query for orders for the current patient
+  const patientOrdersQuery = firestore && user ? query(collection(firestore, `patients/${user.uid}/orders`)) : null;
+  const { data: orders, loading: ordersLoading } = useCollection<Order>(patientOrdersQuery);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [patientInventory, setPatientInventory] = useState<PatientStock[]>(() => [
-    { ...pharmacyProducts[0], patientStock: 5 }, // Start with 5 Paracetamol
-    { ...pharmacyProducts[2], patientStock: 3 }, // And 3 Ibuprofen
-  ]);
 
   const { toast } = useToast();
 
-  const filteredProducts = pharmacyProducts.filter((product) =>
+  const filteredProducts = allProducts?.filter((product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getImage = (id: string) => PlaceHolderImages.find(img => img.id === id);
+  const getImage = (imageIdentifier: string) => {
+    if (imageIdentifier.startsWith('data:image')) {
+        return imageIdentifier;
+    }
+    return imageIdentifier;
+  };
 
   const addToCart = (product: Product) => {
     setCart((prevCart) => {
@@ -67,35 +101,45 @@ export function MyOrders() {
   const cartTotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
   
-  const handleCheckout = () => {
-    if(cart.length === 0) return;
-    addOrder({
-        items: cart.map(item => ({ productId: item.id, name: item.name, quantity: item.quantity })),
-        total: cartTotal,
-        status: 'pending',
-        date: new Date().toISOString().split('T')[0]
-    });
+  const handleCheckout = async () => {
+    if(cart.length === 0 || !firestore || !user) return;
 
-    // Add ordered items to patient inventory
-    setPatientInventory(prevInventory => {
-        const newInventory = [...prevInventory];
-        cart.forEach(cartItem => {
-            const inventoryItem = newInventory.find(invItem => invItem.id === cartItem.id);
-            if (inventoryItem) {
-                inventoryItem.patientStock += cartItem.quantity;
-            } else {
-                newInventory.push({ ...cartItem, patientStock: cartItem.quantity });
-            }
-        });
-        return newInventory;
-    });
+    // Group cart items by pharmacy
+    const ordersByPharmacy = cart.reduce((acc, item) => {
+        (acc[item.pharmacyId] = acc[item.pharmacyId] || []).push(item);
+        return acc;
+    }, {} as Record<string, CartItem[]>);
 
-    setCart([]);
-    setIsCartOpen(false);
-    toast({
-        title: 'Order Placed!',
-        description: 'Your order has been sent to the pharmacy for approval.'
-    })
+    toast({ title: 'Placing Orders...', description: 'Please wait.'});
+
+    try {
+        for (const pharmacyId in ordersByPharmacy) {
+            const items = ordersByPharmacy[pharmacyId];
+            const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+            const orderData = {
+                patientId: user.uid,
+                pharmacyId: pharmacyId,
+                items: items.map(item => ({ productId: item.id, name: item.name, quantity: item.quantity })),
+                total: total,
+                status: 'pending' as const,
+                date: new Date().toISOString().split('T')[0],
+            };
+
+            // Add order to the patient's order subcollection
+            await addDoc(collection(firestore, `patients/${user.uid}/orders`), orderData);
+        }
+
+        setCart([]);
+        setIsCartOpen(false);
+        toast({
+            title: 'Orders Placed!',
+            description: 'Your orders have been sent to the respective pharmacies for approval.'
+        })
+    } catch (error) {
+        console.error("Error placing order: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not place your orders.' });
+    }
   }
   
     const getStatusVariant = (status: Order['status']): "default" | "secondary" | "destructive" => {
@@ -114,7 +158,7 @@ export function MyOrders() {
                  <CardHeader className="flex flex-row items-start justify-between gap-4">
                     <div>
                         <CardTitle className="font-headline">Order Medicine</CardTitle>
-                        <CardDescription>Search for medicine and add to your cart.</CardDescription>
+                        <CardDescription>Search for medicine from all pharmacies and add to your cart.</CardDescription>
                     </div>
                      <SheetTrigger asChild>
                         <Button variant="outline" className="shrink-0">
@@ -134,30 +178,37 @@ export function MyOrders() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredProducts.map((product) => {
-                        const image = product.images && product.images.length > 0 ? getImage(product.images[0]) : null;
-                        return (
-                            <Card key={product.id} className="flex flex-col">
-                                <CardHeader className='p-0'>
-                                {image && <Image src={image.imageUrl} alt={image.description} data-ai-hint={image.imageHint} width={400} height={300} className='w-full h-40 object-cover rounded-t-lg'/>}
-                                </CardHeader>
-                                <CardContent className="p-4 flex-grow">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="font-bold">{product.name}</h3>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
-                                    <p className="font-bold mt-2">PKR {product.price.toFixed(2)}</p>
-                                </CardContent>
-                                <CardFooter className="p-4">
-                                    <Button className="w-full" onClick={() => addToCart(product)} disabled={product.stock === 0}>
-                                        <ShoppingCart className="mr-2 h-4 w-4" /> {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        )
-                    })}
-                </div>
+                {productsLoading ? (
+                    <div className="flex justify-center items-center h-40">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredProducts?.map((product) => {
+                            const imageUrl = product.images && product.images.length > 0 ? getImage(product.images[0]) : null;
+                            return (
+                                <Card key={product.id} className="flex flex-col">
+                                    <CardHeader className='p-0'>
+                                        {imageUrl ? <Image src={imageUrl} alt={product.name} width={400} height={300} className='w-full h-40 object-cover rounded-t-lg'/> : <div className='w-full h-40 bg-muted rounded-t-lg'/>}
+                                    </CardHeader>
+                                    <CardContent className="p-4 flex-grow">
+                                        <div className="flex justify-between items-start">
+                                            <h3 className="font-bold">{product.name}</h3>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">{product.pharmacyName}</p>
+                                        <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
+                                        <p className="font-bold mt-2">PKR {product.price.toFixed(2)}</p>
+                                    </CardContent>
+                                    <CardFooter className="p-4">
+                                        <Button className="w-full" onClick={() => addToCart(product)} disabled={product.stock === 0}>
+                                            <ShoppingCart className="mr-2 h-4 w-4" /> {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                )}
                 </CardContent>
             </Card>
 
@@ -177,6 +228,7 @@ export function MyOrders() {
                                     <div>
                                         <p className="font-medium">{item.name}</p>
                                         <p className="text-sm text-muted-foreground">PKR {item.price.toFixed(2)}</p>
+                                        <p className="text-xs text-muted-foreground/80">{item.pharmacyName}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Button size="icon" variant="ghost" className='h-6 w-6' onClick={() => updateQuantity(item.id, -1)}><Minus className='h-4 w-4'/></Button>
@@ -202,40 +254,44 @@ export function MyOrders() {
             </SheetContent>
         </Sheet>
        
-        {orders.length > 0 && (
-            <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">My Order History</CardTitle>
-                <CardDescription>Track the status of your recent medicine orders.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {orders.length === 0 ? (
-                <p className="text-sm text-muted-foreground">You haven't placed any orders yet.</p>
-                ) : (
-                <div className="space-y-4">
-                    {orders.map((order) => (
-                    <Card key={order.id}>
-                        <CardHeader>
-                            <div className='flex justify-between items-start'>
-                                <div>
-                                    <CardTitle className='text-lg'>Order #{order.id.split('-')[1]}</CardTitle>
-                                    <CardDescription>Total: PKR {order.total.toFixed(2)} | Date: {order.date}</CardDescription>
-                                </div>
-                                <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <ul className='text-sm space-y-1 text-muted-foreground'>
-                                {order.items.map(item => <li key={item.productId}>{item.name} (x{item.quantity})</li>)}
-                            </ul>
-                        </CardContent>
-                    </Card>
-                    ))}
+        <Card>
+        <CardHeader>
+            <CardTitle className="font-headline">My Order History</CardTitle>
+            <CardDescription>Track the status of your recent medicine orders.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {ordersLoading ? (
+                <div className="flex justify-center items-center h-24">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-                )}
-            </CardContent>
-            </Card>
-        )}
+            ) : orders && orders.length > 0 ? (
+            <div className="space-y-4">
+                {orders.map((order) => (
+                <Card key={order.id}>
+                    <CardHeader>
+                        <div className='flex justify-between items-start'>
+                            <div>
+                                <CardTitle className='text-lg'>Order #{order.id.substring(0, 5)}</CardTitle>
+                                <CardDescription>Total: PKR {order.total.toFixed(2)} | Date: {order.date}</CardDescription>
+                            </div>
+                            <Badge variant={getStatusVariant(order.status)} className="capitalize">{order.status}</Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className='text-sm space-y-1 text-muted-foreground'>
+                            {order.items.map(item => <li key={item.productId}>{item.name} (x{item.quantity})</li>)}
+                        </ul>
+                    </CardContent>
+                </Card>
+                ))}
+            </div>
+            ) : (
+                <p className="text-sm text-center text-muted-foreground py-8">You haven't placed any orders yet.</p>
+            )}
+        </CardContent>
+        </Card>
     </div>
   );
 }
+
+    

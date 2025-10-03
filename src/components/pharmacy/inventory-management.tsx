@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Product } from '@/lib/data';
-import { useDataStore } from '@/hooks/use-data-store';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useAuth, useFirestore, useCollection } from '@/firebase';
+import { collection, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+
 import { lowStockAlert } from '@/ai/flows/low-stock-alerts';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -17,11 +17,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Plus, Loader2, Upload, X } from 'lucide-react';
+import { Plus, Loader2, Upload, X, Trash2 } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
+
+
+// This should match the backend.json entity
+export interface Product {
+  id: string;
+  pharmacyId: string;
+  pharmacyName: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  images: string[];
+}
+
 
 const productSchema = z.object({
-  id: z.string().optional(),
   name: z.string().min(1, "Product name is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   price: z.coerce.number().min(0.01, "Price must be positive"),
@@ -31,7 +45,12 @@ const productSchema = z.object({
 type ProductFormValues = z.infer<typeof productSchema>;
 
 export function InventoryManagement() {
-    const { pharmacyProducts, updateProductStock, addProduct, updateProduct } = useDataStore();
+    const { user, userData } = useAuth();
+    const firestore = useFirestore();
+
+    const productsCollectionRef = firestore && user ? collection(firestore, 'pharmacies', user.uid, 'products') : null;
+    const { data: pharmacyProducts, loading: productsLoading } = useCollection<Product>(productsCollectionRef);
+
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -50,7 +69,10 @@ export function InventoryManagement() {
     useEffect(() => {
         if (editingProduct) {
             editForm.reset({
-                ...editingProduct,
+                name: editingProduct.name,
+                description: editingProduct.description,
+                price: editingProduct.price,
+                stock: editingProduct.stock,
                 images: editingProduct.images || [],
             });
             setImagePreviews(editingProduct.images || []);
@@ -65,12 +87,13 @@ export function InventoryManagement() {
         if (imageIdentifier.startsWith('data:image')) {
             return imageIdentifier;
         }
-        const placeholder = PlaceHolderImages.find(img => img.id === imageIdentifier);
-        return placeholder?.imageUrl;
+        return imageIdentifier;
     };
 
     const handleStockUpdate = async (product: Product, newStock: number) => {
-        updateProductStock(product.id, newStock);
+        if (!firestore || !user) return;
+        const productRef = doc(firestore, 'pharmacies', user.uid, 'products', product.id);
+        await updateDoc(productRef, { stock: newStock });
 
         if (newStock < 5) {
             try {
@@ -92,40 +115,72 @@ export function InventoryManagement() {
         }
     }
     
-    const handleAddProduct = (data: ProductFormValues) => {
+    const handleAddProduct = async (data: ProductFormValues) => {
+        if (!firestore || !user || !userData?.pharmacyName) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User or pharmacy data not found.' });
+            return;
+        }
         setIsSubmitting(true);
-        addProduct({
-            name: data.name,
-            price: data.price,
-            stock: data.stock,
-            description: data.description,
-            images: imagePreviews,
-        });
-        toast({
-            title: 'Product Added',
-            description: `${data.name} has been added to inventory.`
-        });
-        setIsSubmitting(false);
-        setIsAddDialogOpen(false);
-        addForm.reset();
-        setImagePreviews([]);
+        try {
+            await addDoc(collection(firestore, 'pharmacies', user.uid, 'products'), {
+                pharmacyId: user.uid,
+                pharmacyName: userData.pharmacyName,
+                name: data.name,
+                price: data.price,
+                stock: data.stock,
+                description: data.description,
+                images: imagePreviews,
+            });
+            toast({
+                title: 'Product Added',
+                description: `${data.name} has been added to inventory.`
+            });
+            setIsAddDialogOpen(false);
+            addForm.reset();
+            setImagePreviews([]);
+        } catch (error) {
+            console.error("Error adding product: ", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not add product.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
-    const handleEditProduct = (data: ProductFormValues) => {
-        if (!editingProduct) return;
+    const handleEditProduct = async (data: ProductFormValues) => {
+        if (!editingProduct || !firestore || !user) return;
         setIsSubmitting(true);
-        updateProduct(editingProduct.id, {
-            ...data,
-            id: editingProduct.id,
-            images: imagePreviews,
-        });
-         toast({
-            title: 'Product Updated',
-            description: `${data.name} has been successfully updated.`
-        });
-        setIsSubmitting(false);
-        setEditingProduct(null);
+        try {
+            const productRef = doc(firestore, 'pharmacies', user.uid, 'products', editingProduct.id);
+            await updateDoc(productRef, {
+                ...data,
+                images: imagePreviews,
+            });
+            toast({
+                title: 'Product Updated',
+                description: `${data.name} has been successfully updated.`
+            });
+            setEditingProduct(null);
+        } catch (error) {
+            console.error("Error updating product: ", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not update product.' });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
+    
+    const handleDeleteProduct = async (productId: string) => {
+        if (!firestore || !user) return;
+        try {
+            await deleteDoc(doc(firestore, 'pharmacies', user.uid, 'products', productId));
+            toast({
+                title: 'Product Deleted',
+                description: `The product has been removed from your inventory.`
+            });
+        } catch (error) {
+            console.error("Error deleting product: ", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not delete product.' });
+        }
+    };
 
     const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -235,6 +290,11 @@ export function InventoryManagement() {
                     </Dialog>
                 </CardHeader>
                 <CardContent>
+                   {productsLoading ? (
+                        <div className="flex justify-center items-center h-40">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                   ) : (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -245,7 +305,7 @@ export function InventoryManagement() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {pharmacyProducts.map(product => {
+                            {pharmacyProducts?.map(product => {
                                 const imageUrl = product.images && product.images.length > 0 ? getImage(product.images[0]) : null;
                                 return(
                                 <TableRow key={product.id}>
@@ -271,9 +331,10 @@ export function InventoryManagement() {
                             )})}
                         </TableBody>
                     </Table>
+                   )}
                 </CardContent>
                  <CardFooter>
-                    <p className='text-xs text-muted-foreground'>Total products: {pharmacyProducts.length}</p>
+                    <p className='text-xs text-muted-foreground'>Total products: {pharmacyProducts?.length || 0}</p>
                 </CardFooter>
             </Card>
 
@@ -336,12 +397,40 @@ export function InventoryManagement() {
                             <FormField control={editForm.control} name="description" render={({field}) => (<FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field}/></FormControl><FormMessage/></FormItem>)}/>
                             <FormField control={editForm.control} name="price" render={({field}) => (<FormItem><FormLabel>Price (PKR)</FormLabel><FormControl><Input type="number" step="0.01" {...field}/></FormControl><FormMessage/></FormItem>)}/>
                             <FormField control={editForm.control} name="stock" render={({field}) => (<FormItem><FormLabel>Current Stock</FormLabel><FormControl><Input type="number" {...field}/></FormControl><FormMessage/></FormItem>)}/>
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setEditingProduct(null)}>Cancel</Button>
-                                <Button type="submit" disabled={isSubmitting}>
-                                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                                        Save Changes
-                                </Button>
+                            <DialogFooter className="justify-between sm:justify-between w-full">
+                                <div>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button type="button" variant="destructive">
+                                                <Trash2 className="mr-2 h-4 w-4" /> Delete Product
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the product from your inventory.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => {
+                                                    handleDeleteProduct(editingProduct.id);
+                                                    setEditingProduct(null);
+                                                }}>
+                                                    Delete
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                                <div className='flex gap-2'>
+                                    <Button type="button" variant="outline" onClick={() => setEditingProduct(null)}>Cancel</Button>
+                                    <Button type="submit" disabled={isSubmitting}>
+                                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                            Save Changes
+                                    </Button>
+                                </div>
                             </DialogFooter>
                             </form>
                         </Form>
@@ -351,3 +440,5 @@ export function InventoryManagement() {
         </>
     );
 }
+
+    

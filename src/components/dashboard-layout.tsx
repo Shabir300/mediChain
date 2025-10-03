@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -24,8 +24,7 @@ import {
   Pill,
   DollarSign,
 } from 'lucide-react';
-
-import { useAuth } from '@/context/auth-context';
+import { useAuth } from '@/firebase';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -55,6 +54,8 @@ import { DoctorAiSheet } from './doctor/doctor-ai-sheet';
 import { PharmacyAiSheet } from './pharmacy/pharmacy-ai-sheet';
 import { ToastAction } from './ui/toast';
 import { MedicationReminder } from './patient/medication-reminder';
+import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 interface NavItem {
   href: string;
@@ -89,19 +90,39 @@ const pharmacyNavItems: NavItem[] = [
 ];
 
 export function DashboardLayout({ children, requiredRole }: { children: React.ReactNode; requiredRole: 'patient' | 'doctor' | 'pharmacy' }) {
-  const { user, logout, loading } = useAuth();
+  const { user, signOut, loading } = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
   const { toast, dismiss } = useToast();
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && (!user || user.role !== requiredRole)) {
-      router.push('/');
-    }
-  }, [user, loading, router, requiredRole]);
+    const checkUserRole = async () => {
+      if (!loading && !user) {
+        router.push('/');
+        return;
+      }
+      if (user && firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const role = userDoc.data().role;
+          setUserRole(role);
+          if (role !== requiredRole) {
+            router.push('/');
+          }
+        } else {
+            // If no user doc, they shouldn't be here
+            router.push('/');
+        }
+      }
+    };
+    checkUserRole();
+  }, [user, loading, router, requiredRole, firestore]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
     router.push('/');
   };
@@ -115,16 +136,17 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
       });
   };
 
-  if (loading || !user) {
+  if (loading || !user || !userRole) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <Logo />
+        <p className="ml-4 text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   const getNavItems = () => {
-    switch (user.role) {
+    switch (userRole) {
       case 'patient': return patientNavItems;
       case 'doctor': return doctorNavItems;
       case 'pharmacy': return pharmacyNavItems;
@@ -133,7 +155,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   };
 
   const getRoleIcon = () => {
-      switch (user.role) {
+      switch (userRole) {
           case 'patient': return <UserIcon className="h-5 w-5 text-muted-foreground" />;
           case 'doctor': return <Stethoscope className="h-5 w-5 text-muted-foreground" />;
           case 'pharmacy': return <Building className="h-5 w-5 text-muted-foreground" />;
@@ -141,7 +163,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   };
 
   const renderAiChat = () => {
-    switch(user.role) {
+    switch(userRole) {
       case 'patient': return <PatientAiSheet />;
       case 'doctor': return <DoctorAiSheet />;
       case 'pharmacy': return <PharmacyAiSheet />;
@@ -181,7 +203,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
             <SidebarTrigger className="md:hidden" />
           <div className="flex w-full items-center justify-end gap-4">
-            {user.role === 'patient' && (
+            {userRole === 'patient' && (
                  <Button variant="destructive" size="sm" onClick={handleSOS}>
                     <AlertTriangle className="mr-2 h-4 w-4" /> SOS
                  </Button>
@@ -190,7 +212,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback>{user.email.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -198,14 +220,14 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex items-center gap-2">
                     {getRoleIcon()}
-                    <p className="text-sm font-medium leading-none">{user.role}</p>
+                    <p className="text-sm font-medium leading-none capitalize">{userRole}</p>
                   </div>
                   <p className="text-xs leading-none text-muted-foreground mt-1">
                     {user.email}
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {user.role === 'doctor' && (
+                {userRole === 'doctor' && (
                   <DropdownMenuItem asChild>
                     <Link href="/doctor/profile">
                       <UserIcon className="mr-2 h-4 w-4" />
@@ -222,7 +244,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
           </div>
         </header>
         <main className="relative flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-            {user.role === 'patient' && <MedicationReminder />}
+            {userRole === 'patient' && <MedicationReminder />}
             {children}
             {renderAiChat()}
         </main>

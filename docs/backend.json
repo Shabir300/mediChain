@@ -1,0 +1,162 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user's unique ID." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "role": { "type": "string", "enum": ["patient", "doctor", "pharmacy"] },
+        "pharmacyName": { "type": "string", "description": "The name of the pharmacy, if the user is a pharmacy." }
+      },
+      "required": ["uid", "email", "displayName", "role"]
+    },
+    "DoctorProfile": {
+      "title": "Doctor Profile",
+      "description": "A doctor's professional profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "fullName": { "type": "string" },
+        "specialty": { "type": "string" },
+        "bio": { "type": "string" },
+        "education": { "type": "string" },
+        "clinicName": { "type": "string" },
+        "address": { "type": "string" },
+        "previousExperience": { "type": "string" },
+        "avatar": { "type": "string", "format": "uri" },
+        "location": { "type": "string" },
+        "availability": { "type": "string" },
+        "rating": { "type": "number" }
+      },
+      "required": ["uid", "email", "fullName", "specialty"]
+    },
+    "PharmacyProfile": {
+      "title": "Pharmacy Profile",
+      "description": "A pharmacy's profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "pharmacyName": { "type": "string" }
+      },
+      "required": ["uid", "email", "pharmacyName"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "A product sold by a pharmacy.",
+      "type": "object",
+      "properties": {
+        "pharmacyId": { "type": "string" },
+        "pharmacyName": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "stock": { "type": "number" },
+        "images": { "type": "array", "items": { "type": "string", "format": "uri" } }
+      },
+      "required": ["pharmacyId", "pharmacyName", "name", "price", "stock"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "A medical appointment.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "doctorId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "time": { "type": "string", "format": "time" },
+        "type": { "type": "string", "enum": ["Normal", "Urgent"] },
+        "status": { "type": "string", "enum": ["booked", "completed", "cancelled"] },
+        "cost": { "type": "number" }
+      },
+      "required": ["patientId", "doctorId", "date", "time", "type", "status", "cost"]
+    },
+    "Order": {
+        "title": "Order",
+        "description": "A pharmacy order.",
+        "type": "object",
+        "properties": {
+            "patientId": { "type": "string" },
+            "pharmacyId": { "type": "string" },
+            "items": { 
+                "type": "array", 
+                "items": { 
+                    "type": "object",
+                    "properties": {
+                        "productId": { "type": "string" },
+                        "name": { "type": "string" },
+                        "quantity": { "type": "number" }
+                    },
+                    "required": ["productId", "name", "quantity"]
+                } 
+            },
+            "total": { "type": "number" },
+            "status": { "type": "string", "enum": ["pending", "approved", "declined"] },
+            "date": { "type": "string", "format": "date" }
+        },
+        "required": ["patientId", "pharmacyId", "items", "total", "status", "date"]
+    },
+    "MedicalRecord": {
+        "title": "Medical Record",
+        "description": "A patient's medical record.",
+        "type": "object",
+        "properties": {
+            "patientId": { "type": "string" },
+            "fileName": { "type": "string" },
+            "uploadDate": { "type": "string", "format": "date" },
+            "type": { "type": "string", "enum": ["Lab Report", "Prescription", "Imaging"] },
+            "fileUrl": { "type": "string", "format": "uri" }
+        },
+        "required": ["patientId", "fileName", "uploadDate", "type", "fileUrl"]
+    },
+    "MedicationReminder": {
+      "title": "Medication Reminder",
+      "description": "A medication reminder for a patient.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "name": { "type": "string" },
+        "time": { "type": "string" }
+      },
+      "required": ["patientId", "name", "time"]
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores basic user profile information."
+    },
+    "/doctors/{doctorId}": {
+      "schema": { "$ref": "#/entities/DoctorProfile" },
+      "description": "Stores detailed professional profiles for doctors."
+    },
+    "/pharmacies/{pharmacyId}/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Stores products for a specific pharmacy."
+    },
+    "/patients/{patientId}/appointments/{appointmentId}": {
+      "schema": { "$ref": "#/entities/Appointment" },
+      "description": "Stores appointments for a specific patient."
+    },
+    "/patients/{patientId}/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Stores pharmacy orders for a specific patient."
+    },
+    "/patients/{patientId}/records/{recordId}": {
+        "schema": { "$ref": "#/entities/MedicalRecord" },
+        "description": "Stores medical records for a specific patient."
+    },
+    "/patients/{patientId}/medications/{medicationId}": {
+        "schema": { "$ref": "#/entities/MedicationReminder" },
+        "description": "Stores medication reminders for a specific patient."
+    }
+  }
+}

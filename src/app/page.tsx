@@ -6,13 +6,15 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth, User } from '@/context/auth-context';
+import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
+import { getDoc, doc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -23,7 +25,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { user, signIn, loading } = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -32,22 +35,31 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
-    if (user && isClient) {
-      switch (user.role) {
-        case 'patient':
-          router.push('/patient');
-          break;
-        case 'doctor':
-          router.push('/doctor');
-          break;
-        case 'pharmacy':
-          router.push('/pharmacy');
-          break;
-        default:
-          router.push('/');
+    const checkUserRole = async () => {
+      if (user && isClient && firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const role = userData.role;
+            switch (role) {
+                case 'patient':
+                router.push('/patient');
+                break;
+                case 'doctor':
+                router.push('/doctor');
+                break;
+                case 'pharmacy':
+                router.push('/pharmacy');
+                break;
+                default:
+                router.push('/');
+            }
+        }
       }
     }
-  }, [user, router, isClient]);
+    checkUserRole();
+  }, [user, isClient, firestore, router]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -57,15 +69,17 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    const loggedInUser = login(data.email, data.password);
-    if (loggedInUser) {
-      toast({
-        title: 'Login Successful',
-        description: `Welcome back, ${loggedInUser.email}!`,
-      });
-      // The useEffect will handle redirection
-    } else {
+  const onSubmit = async (data: LoginFormValues) => {
+    try {
+      const userCredential = await signIn(data.email, data.password);
+      if (userCredential?.user) {
+        toast({
+          title: 'Login Successful',
+          description: `Welcome back, ${userCredential.user.email}!`,
+        });
+        // The useEffect will handle redirection
+      }
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
@@ -74,7 +88,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!isClient || user) {
+  if (!isClient || loading || user) {
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
