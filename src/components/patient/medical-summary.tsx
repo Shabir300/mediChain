@@ -3,7 +3,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { getMedicalSummary, MedicalSummaryOutput } from "@/ai/flows/generate-medical-summary";
 import { useDataStore } from "@/hooks/use-data-store";
 import { useMedicationStore } from "@/hooks/use-medication-store";
@@ -51,24 +50,64 @@ export function MedicalSummary() {
         generateSummary();
     }, [medications, appointments, medicalRecords]);
 
-    const handleDownloadPdf = async () => {
-        if (!summaryRef.current) return;
+    const handleDownloadPdf = () => {
+        if (!summary) return;
 
         setIsDownloading(true);
         toast({ title: 'Generating PDF...', description: 'Please wait a moment.' });
         
         try {
-            const canvas = await html2canvas(summaryRef.current, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
+            const doc = new jsPDF();
             
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("AI Medical Summary", 105, 20, { align: "center" });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.text(`Report Generated: ${new Date().toLocaleDateString()}`, 105, 28, { align: "center" });
+
+            let yPos = 45;
+
+            // Highlights
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("Key Highlights", 14, yPos);
+            yPos += 8;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12);
+            const highlightsText = doc.splitTextToSize(`- ${summary.highlights}`, 180);
+            doc.text(highlightsText, 14, yPos);
+            yPos += highlightsText.length * 5 + 10;
             
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save('medical-summary.pdf');
+            doc.line(14, yPos, 196, yPos); // separator
+            yPos += 10;
+
+            // Recent Activity
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("Recent Activity", 14, yPos);
+            yPos += 8;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12);
+            const activityText = doc.splitTextToSize(summary.recentActivity, 180);
+            doc.text(activityText, 14, yPos);
+            yPos += activityText.length * 5 + 10;
+            
+            doc.line(14, yPos, 196, yPos); // separator
+            yPos += 10;
+            
+            // Active Medications
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("Active Medications", 14, yPos);
+            yPos += 8;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(12);
+            const medicationText = doc.splitTextToSize(summary.medicationSummary, 180);
+            doc.text(medicationText, 14, yPos);
+
+            doc.save('medical-summary.pdf');
 
             toast({ title: 'Download Complete!', description: 'Your medical summary PDF has been saved.' });
         } catch (error) {
