@@ -102,8 +102,6 @@ export default function ProfileForm() {
         return;
     }
 
-    let dataToSave;
-
     try {
         let avatarUrl = avatarPreview;
 
@@ -112,14 +110,16 @@ export default function ProfileForm() {
             toast({
                 variant: "destructive",
                 title: "Image Too Large",
-                description: "Profile picture is too large. Please choose a smaller file. Other data has been saved.",
+                description: "Profile picture is too large and will not be saved. Please choose a smaller file.",
             });
             // If image is too large, use the old one if it exists, otherwise revert to null
             avatarUrl = doctorProfile?.avatar || null;
         }
 
-        // Prepare the base data from the form
-        const baseData = {
+        // Prepare the data to save
+        const dataToSave = {
+            uid: user.uid, // Always include UID
+            email: user.email, // Always include email
             fullName: data.fullName,
             specialty: data.specialty,
             bio: data.bio,
@@ -128,25 +128,11 @@ export default function ProfileForm() {
             address: data.address,
             previousExperience: data.previousExperience,
             avatar: avatarUrl,
+            // Provide defaults for existing or new profiles
+            location: doctorProfile?.location || 'In City',
+            availability: doctorProfile?.availability || 'Online',
+            rating: doctorProfile?.rating || 4.5,
         };
-
-        if (doctorProfile) {
-            // UPDATE: Profile exists, merge data
-            dataToSave = {
-                ...doctorProfile,
-                ...baseData,
-            };
-        } else {
-            // CREATE: New profile, create full object with defaults
-            dataToSave = {
-                ...baseData,
-                uid: user.uid,
-                email: user.email,
-                location: 'In City',
-                availability: 'Online',
-                rating: 4.5,
-            };
-        }
         
         await setDoc(doctorProfileRef, dataToSave, { merge: true });
 
@@ -154,12 +140,12 @@ export default function ProfileForm() {
             title: "Profile Saved",
             description: "Your professional profile has been updated.",
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error saving profile: ", error);
         toast({
             variant: "destructive",
-            title: "Error",
-            description: "Could not save your profile. Please try again.",
+            title: "Error Saving Profile",
+            description: error.message || "An unknown error occurred. Please check the console for details.",
         });
     }
   }
@@ -350,3 +336,4 @@ export default function ProfileForm() {
   )
 }
 
+    
