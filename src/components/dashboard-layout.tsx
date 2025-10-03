@@ -23,6 +23,7 @@ import {
   Hospital,
   Pill,
   DollarSign,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import { cn } from '@/lib/utils';
@@ -92,22 +93,24 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   const router = useRouter();
   const pathname = usePathname();
   const { toast, dismiss } = useToast();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/');
-      return;
+    if (!loading) {
+      setIsInitialLoad(false);
+      if (!user) {
+        router.push('/');
+      } else if (user.role && user.role !== requiredRole) {
+        toast({
+          variant: 'destructive',
+          title: 'Access Denied',
+          description: 'You do not have permission to view this page.',
+        });
+        router.push('/');
+      }
     }
-    
-    if (user && user.role && user.role !== requiredRole) {
-       toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "You do not have permission to view this page.",
-       });
-       router.push('/');
-    }
-  }, [user, loading, router, requiredRole]);
+  }, [user, loading, router, requiredRole, toast]);
+
 
   const handleLogout = async () => {
     await signOut();
@@ -127,14 +130,28 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   const currentUser = user;
   const userRole = currentUser?.role;
 
-  if (loading || !currentUser) {
+  if (isInitialLoad && loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Logo />
-        <p className="ml-4 text-muted-foreground">Verifying access...</p>
+        <div className="flex flex-col items-center gap-4">
+          <Logo />
+          <p className="text-muted-foreground flex items-center gap-2 mt-4"><Loader2 className="animate-spin h-5 w-5"/>Verifying access...</p>
+        </div>
       </div>
     );
   }
+  
+  if (!user) {
+     return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Logo />
+          <p className="text-muted-foreground flex items-center gap-2 mt-4">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
 
   const getNavItems = () => {
     switch (userRole) {
