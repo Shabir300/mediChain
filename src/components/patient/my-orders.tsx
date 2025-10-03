@@ -164,7 +164,7 @@ export function MyOrders() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredProducts.map((product) => {
-                        const image = product.images.length > 0 ? getImage(product.images[0]) : null;
+                        const image = product.images && product.images.length > 0 ? getImage(product.images[0]) : null;
                         const patientStock = patientInventory.find(p => p.id === product.id)?.patientStock || 0;
                         return (
                             <Card key={product.id} className="flex flex-col">
@@ -269,3 +269,5 @@ export function MyOrders() {
     </div>
   );
 }
+
+    
