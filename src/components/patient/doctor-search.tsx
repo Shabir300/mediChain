@@ -139,10 +139,6 @@ export function DoctorSearch() {
                                 <CardContent className="p-4">
                                      <div className='flex justify-between items-start'>
                                         <CardTitle className="text-xl font-headline">{doctor.name}</CardTitle>
-                                        <div className='flex items-center gap-1 font-bold text-amber-500 bg-amber-500/10 px-2 py-1 rounded-full text-sm'>
-                                            <Star className='h-4 w-4 fill-amber-500' />
-                                            <span>{doctor.rating.toFixed(1)}</span>
-                                        </div>
                                     </div>
                                     <CardDescription className='mt-1'>{doctor.specialty}</CardDescription>
                                      <div className='flex gap-2 mt-2'>
