@@ -15,7 +15,7 @@ import { useFirebase } from '../provider';
 import type { User as AppUser } from '@/lib/types';
 
 
-export function useUser() {
+export function useFirebaseAuth() {
   const { auth, firestore } = useFirebase();
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);

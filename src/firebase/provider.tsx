@@ -17,7 +17,7 @@ import {
   getApp,
 } from 'firebase/app';
 import { firebaseConfig } from './config';
-import { useUser } from './auth/use-user';
+import { useFirebaseAuth } from './auth/use-firebase-auth';
 
 // Define the shape of the context value
 interface FirebaseContextValue {
@@ -86,6 +86,5 @@ export function useFirestore() {
 
 // Custom hook to get the Auth instance
 export function useAuth() {
-  const userHook = useUser();
-  return userHook;
+  return useFirebaseAuth();
 }

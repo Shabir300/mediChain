@@ -14,6 +14,6 @@ function initializeFirebase() {
 
 export { initializeFirebase };
 export * from './provider';
-export * from './auth/use-user';
+export * from './auth/use-firebase-auth';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
