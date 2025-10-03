@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -31,14 +30,16 @@ export default function LoginPage() {
   useEffect(() => {
     setIsClient(true);
     if(isClient) {
+      // Ensure any previous session is cleared on page load, per user request.
       signOut();
     }
-  }, [signOut, isClient]);
+  }, [isClient, signOut]);
 
   useEffect(() => {
-    if (!loading && user && isClient) {
-        const role = user.role;
-        switch (role) {
+    // This effect handles the redirection logic.
+    // It will only run on the client-side after hydration.
+    if (!loading && user && user.role && isClient) {
+        switch (user.role) {
             case 'patient':
                 router.push('/patient');
                 break;
@@ -49,13 +50,13 @@ export default function LoginPage() {
                 router.push('/pharmacy');
                 break;
             default:
-                // If role is unknown, maybe show an error and sign out
+                // Handle cases where the role is not recognized
                 toast({
                     variant: 'destructive',
                     title: 'Login Failed',
-                    description: 'User role is not defined. Please contact support.',
+                    description: 'Your user role is not recognized. Please contact support.',
                 });
-                signOut();
+                signOut(); // Sign out the user if the role is invalid
                 break;
         }
     }
@@ -86,6 +87,7 @@ export default function LoginPage() {
   };
 
   if (!isClient || loading) {
+    // Show a loading screen while Firebase is initializing or if not on client
     return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-4">
@@ -97,6 +99,7 @@ export default function LoginPage() {
   }
   
   if (user) {
+    // If a user is logged in but redirection hasn't happened yet, show a redirecting screen.
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
           <div className="flex flex-col items-center gap-4">
@@ -107,6 +110,7 @@ export default function LoginPage() {
     );
   }
 
+  // If no user is logged in and not loading, show the login form.
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md shadow-2xl">
