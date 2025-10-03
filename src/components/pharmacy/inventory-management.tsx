@@ -79,7 +79,7 @@ export function InventoryManagement() {
             price: data.price,
             stock: data.stock,
             description: data.description,
-            images: imagePreviews,
+            images: imagePreviews || [],
         });
         toast({
             title: 'Product Added',
@@ -204,7 +204,7 @@ export function InventoryManagement() {
                     </TableHeader>
                     <TableBody>
                         {pharmacyProducts.map(product => {
-                             const imageUrl = product.images.length > 0 ? getImage(product.images[0]) : null;
+                             const imageUrl = product.images && product.images.length > 0 ? getImage(product.images[0]) : null;
                              return(
                             <TableRow key={product.id}>
                                 <TableCell>
