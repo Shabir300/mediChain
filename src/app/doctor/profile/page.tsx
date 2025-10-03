@@ -45,6 +45,10 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>
 
+// Firestore's document size limit is 1 MiB (1,048,576 bytes).
+// We'll use a slightly smaller limit to be safe.
+const MAX_AVATAR_SIZE = 1000000;
+
 export default function ProfileForm() {
   const { user } = useAuth()
   const firestore = useFirestore()
@@ -92,9 +96,23 @@ export default function ProfileForm() {
     if (!user || !firestore || !doctorProfileRef) return;
 
     try {
+        let avatarUrl = doctorProfile?.avatar || '';
+        if (avatarPreview) {
+            if (avatarPreview.length > MAX_AVATAR_SIZE) {
+                toast({
+                    variant: "destructive",
+                    title: "Image Too Large",
+                    description: "The profile picture is too large to save. Please choose a smaller file.",
+                });
+                avatarUrl = doctorProfile?.avatar || ''; // Revert to old avatar if new one is too big
+            } else {
+                avatarUrl = avatarPreview;
+            }
+        }
+
         const dataToSave = {
-            ...doctorProfile, // Start with existing data to ensure merge works correctly
-            uid: user.uid, // ALWAYS include the UID
+            ...doctorProfile,
+            uid: user.uid,
             email: user.email,
             fullName: data.fullName,
             specialty: data.specialty,
@@ -103,13 +121,12 @@ export default function ProfileForm() {
             clinicName: data.clinicName,
             address: data.address,
             previousExperience: data.previousExperience,
-            avatar: avatarPreview || doctorProfile?.avatar || '',
+            avatar: avatarUrl,
             location: doctorProfile?.location || 'In City',
             availability: doctorProfile?.availability || 'Online',
             rating: doctorProfile?.rating || 4.5,
         };
 
-        // Use setDoc with merge:true to create or update.
         await setDoc(doctorProfileRef, dataToSave, { merge: true });
 
         toast({
@@ -131,7 +148,16 @@ export default function ProfileForm() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
+        const result = reader.result as string;
+        if (result.length > MAX_AVATAR_SIZE) {
+             toast({
+                variant: "destructive",
+                title: "Image Too Large",
+                description: `The selected image is too large. Please select a file smaller than 1MB.`,
+            });
+            return;
+        }
+        setAvatarPreview(result);
       };
       reader.readAsDataURL(file);
     }
@@ -301,3 +327,5 @@ export default function ProfileForm() {
     </DashboardLayout>
   )
 }
+
+    
