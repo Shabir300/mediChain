@@ -14,6 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
+import type { User as AppUser } from '@/lib/types';
+
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -24,7 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, signIn, loading } = useAuth();
+  const { user, signIn, loading, setAuthUser } = useAuth();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -60,6 +62,32 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+     // Demo accounts for quick access
+    if (data.password === 'password') {
+        let demoUser: AppUser | null = null;
+        if (data.email === 'patient@test.com') {
+            demoUser = { uid: 'patient-test-id', email: 'patient@test.com', displayName: 'Test Patient', role: 'patient' };
+        } else if (data.email === 'doctor@test.com') {
+            demoUser = { uid: 'doctor-test-id', email: 'doctor@test.com', displayName: 'Test Doctor', role: 'doctor' };
+        } else if (data.email === 'pharmacy1@test.com') {
+            demoUser = { uid: 'pharmacy1-test-id', email: 'pharmacy1@test.com', displayName: 'CureLink Pharmacy', role: 'pharmacy', pharmacyName: 'CureLink Pharmacy' };
+        } else if (data.email === 'pharmacy2@test.com') {
+            demoUser = { uid: 'pharmacy2-test-id', email: 'pharmacy2@test.com', displayName: 'HealthPlus Meds', role: 'pharmacy', pharmacyName: 'HealthPlus Meds' };
+        } else if (data.email === 'pharmacy3@test.com') {
+            demoUser = { uid: 'pharmacy3-test-id', email: 'pharmacy3@test.com', displayName: 'Wellness Rx', role: 'pharmacy', pharmacyName: 'Wellness Rx' };
+        }
+        
+        if (demoUser) {
+            setAuthUser(demoUser);
+            toast({
+              title: 'Login Successful',
+              description: `Welcome, ${demoUser.displayName}! Redirecting...`,
+            });
+            return;
+        }
+    }
+
+    // Regular login
     try {
       const userCredential = await signIn(data.email, data.password);
       if (userCredential.user) {
@@ -78,7 +106,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!isClient || loading) {
+  if (!isClient || (loading && !user)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

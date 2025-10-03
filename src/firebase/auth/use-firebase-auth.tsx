@@ -36,13 +36,11 @@ export function useFirebaseAuth() {
             }
             setUser(fullUser);
         } else {
-            // This might happen briefly during signup, or if the user doc doesn't exist
-            // We set a basic user object, but the role might be missing.
              const basicUser: AppUser = {
                 uid: firebaseUser.uid,
                 email: firebaseUser.email!,
                 displayName: firebaseUser.displayName!,
-                role: 'patient', // default role, redirection logic should be robust
+                role: 'patient', // default role
             }
             setUser(basicUser);
         }
@@ -57,14 +55,17 @@ export function useFirebaseAuth() {
 
   return {
     user,
-    // Keep userData for compatibility in other parts of the app for now, but it's derived from user.
-    userData: user, 
+    userData: user,
     loading,
+    setAuthUser: setUser, // Manually set user for demo purposes
     signUp: (email, password) =>
       createUserWithEmailAndPassword(auth, email, password),
     signIn: (email, password) =>
       signInWithEmailAndPassword(auth, email, password),
-    signOut: () => signOut(auth),
+    signOut: () => {
+        setUser(null);
+        return signOut(auth);
+    },
     updateProfile: (user: FirebaseUser, profile: { displayName?: string, photoURL?: string}) => updateProfile(user, profile),
   };
 }
