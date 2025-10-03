@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
 import { doc, setDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, deleteUser } from 'firebase/auth';
 
 const signupSchema = z.object({
   fullName: z.string().min(2, { message: 'Full name is required.' }),
@@ -59,8 +59,9 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupFormValues) => {
     if (!firestore || !signUp) return;
 
+    let userCredential;
     try {
-      const userCredential = await signUp(data.email, data.password);
+      userCredential = await signUp(data.email, data.password);
       const user = userCredential?.user;
       
       if (user) {
@@ -90,13 +91,24 @@ export default function SignupPage() {
       }
     } catch (error: any) {
       console.error('Signup Error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description: error.code === 'auth/email-already-in-use' 
-            ? 'This email address is already in use. Please try logging in.'
-            : (error.message || 'An error occurred during signup.'),
-      });
+
+      // If auth user was created but something failed after (e.g. Firestore write), delete the auth user
+      if (userCredential && userCredential.user) {
+        await deleteUser(userCredential.user);
+        toast({
+          variant: 'destructive',
+          title: 'Signup Failed',
+          description: 'Something went wrong. Please try again. Your previous attempt has been rolled back.',
+        });
+      } else {
+         toast({
+          variant: 'destructive',
+          title: 'Signup Failed',
+          description: error.code === 'auth/email-already-in-use' 
+              ? 'This email address is already in use. Please try logging in.'
+              : (error.message || 'An error occurred during signup.'),
+        });
+      }
     }
   };
 
