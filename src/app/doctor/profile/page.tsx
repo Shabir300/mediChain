@@ -93,27 +93,33 @@ export default function ProfileForm() {
 
 
   async function onSubmit(data: ProfileFormValues) {
-    if (!user || !firestore || !doctorProfileRef) return;
+    if (!user || !firestore || !doctorProfileRef) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "User not authenticated. Please log in again.",
+        });
+        return;
+    }
+
+    let dataToSave;
 
     try {
-        let avatarUrl = doctorProfile?.avatar || '';
-        if (avatarPreview) {
-            if (avatarPreview.length > MAX_AVATAR_SIZE) {
-                toast({
-                    variant: "destructive",
-                    title: "Image Too Large",
-                    description: "The profile picture is too large to save. Please choose a smaller file.",
-                });
-                avatarUrl = doctorProfile?.avatar || ''; // Revert to old avatar if new one is too big
-            } else {
-                avatarUrl = avatarPreview;
-            }
+        let avatarUrl = avatarPreview;
+
+        // Handle oversized image
+        if (avatarPreview && avatarPreview.length > MAX_AVATAR_SIZE) {
+            toast({
+                variant: "destructive",
+                title: "Image Too Large",
+                description: "Profile picture is too large. Please choose a smaller file. Other data has been saved.",
+            });
+            // If image is too large, use the old one if it exists, otherwise revert to null
+            avatarUrl = doctorProfile?.avatar || null;
         }
 
-        const dataToSave = {
-            ...doctorProfile,
-            uid: user.uid,
-            email: user.email,
+        // Prepare the base data from the form
+        const baseData = {
             fullName: data.fullName,
             specialty: data.specialty,
             bio: data.bio,
@@ -122,11 +128,26 @@ export default function ProfileForm() {
             address: data.address,
             previousExperience: data.previousExperience,
             avatar: avatarUrl,
-            location: doctorProfile?.location || 'In City',
-            availability: doctorProfile?.availability || 'Online',
-            rating: doctorProfile?.rating || 4.5,
         };
 
+        if (doctorProfile) {
+            // UPDATE: Profile exists, merge data
+            dataToSave = {
+                ...doctorProfile,
+                ...baseData,
+            };
+        } else {
+            // CREATE: New profile, create full object with defaults
+            dataToSave = {
+                ...baseData,
+                uid: user.uid,
+                email: user.email,
+                location: 'In City',
+                availability: 'Online',
+                rating: 4.5,
+            };
+        }
+        
         await setDoc(doctorProfileRef, dataToSave, { merge: true });
 
         toast({
@@ -153,9 +174,10 @@ export default function ProfileForm() {
              toast({
                 variant: "destructive",
                 title: "Image Too Large",
-                description: `The selected image is too large. Please select a file smaller than 1MB.`,
+                description: `The selected image is too large and will not be saved. Please select a file smaller than 1MB.`,
             });
-            return;
+             setAvatarPreview(result); // Show preview but it will be rejected on submit
+             return;
         }
         setAvatarPreview(result);
       };
