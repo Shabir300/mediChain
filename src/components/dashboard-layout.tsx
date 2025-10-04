@@ -9,11 +9,7 @@ import {
   ClipboardList,
   Home,
   LogOut,
-  MessageCircle,
-  Package,
-  Search,
-  ShoppingCart,
-  Stethoscope,
+  Hospital,
   User as UserIcon,
 } from 'lucide-react';
 
@@ -51,21 +47,30 @@ interface NavItem {
 }
 
 const patientNavItems: NavItem[] = [
-  { href: '/patient', icon: Home, label: 'Dashboard' },
-  { href: '/patient/doctors', icon: Search, label: 'Find a Doctor' },
-  { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
-  { href: '/patient/orders', icon: ShoppingCart, label: 'Pharmacy Orders' },
+    { href: '/patient', icon: Home, label: 'Dashboard' },
+    { href: '/profile', icon: UserIcon, label: 'Profile' },
+    { href: '/patient/doctors', icon: UserIcon, label: 'Find a Doctor' },
+    { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
+    { href: '/patient/orders', icon: Building, label: 'Pharmacy Orders' },
 ];
-
+  
 const doctorNavItems: NavItem[] = [
-  { href: '/doctor', icon: Home, label: 'Dashboard' },
+    { href: '/doctor', icon: Home, label: 'Dashboard' },
+    { href: '/profile', icon: UserIcon, label: 'Profile' },
 ];
-
+  
 const pharmacyNavItems: NavItem[] = [
-  { href: '/pharmacy', icon: Home, label: 'Dashboard' },
+    { href: '/pharmacy', icon: Home, label: 'Dashboard' },
+    { href: '/profile', icon: UserIcon, label: 'Profile' },
+];
+  
+const hospitalNavItems: NavItem[] = [
+    { href: '/hospital', icon: Home, label: 'Dashboard' },
+    { href: '/profile', icon: UserIcon, label: 'Profile' },
 ];
 
-export function DashboardLayout({ children, requiredRole }: { children: React.ReactNode; requiredRole: 'patient' | 'doctor' | 'pharmacy' }) {
+
+export function DashboardLayout({ children, requiredRole }: { children: React.ReactNode; requiredRole: 'patient' | 'doctor' | 'pharmacy' | 'hospital' }) {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -85,7 +90,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
                   description: 'It\'s time to take your Paracetamol.',
                   action: <Button variant="outline" size="sm">Dismiss</Button>
               });
-          }, 15000); // 15-second reminder for demo
+          }, 15000); 
           return () => clearTimeout(timer);
       }
   }, [user, toast]);
@@ -117,6 +122,7 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
       case 'patient': return patientNavItems;
       case 'doctor': return doctorNavItems;
       case 'pharmacy': return pharmacyNavItems;
+      case 'hospital': return hospitalNavItems;
       default: return [];
     }
   };
@@ -124,8 +130,9 @@ export function DashboardLayout({ children, requiredRole }: { children: React.Re
   const getRoleIcon = () => {
       switch (user.role) {
           case 'patient': return <UserIcon className="h-5 w-5 text-muted-foreground" />;
-          case 'doctor': return <Stethoscope className="h-5 w-5 text-muted-foreground" />;
+          case 'doctor': return <UserIcon className="h-5 w-5 text-muted-foreground" />;
           case 'pharmacy': return <Building className="h-5 w-5 text-muted-foreground" />;
+          case 'hospital': return <Hospital className="h-5 w-5 text-muted-foreground" />;
       }
   };
 

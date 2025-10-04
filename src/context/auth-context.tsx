@@ -1,79 +1,139 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
+import { useToast } from '../hooks/use-toast';
 
-export type Role = 'patient' | 'doctor' | 'pharmacy';
+export type Role = 'patient' | 'doctor' | 'pharmacy' | 'hospital';
 
 export interface User {
-  id: string;
-  email: string;
+  uid: string;
+  email: string | null;
   role: Role;
+  name?: string;
+  phone?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => User | null;
-  signup: (email: string, password: string, role: Role) => User | null;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<User | null>;
+  signup: (email: string, password: string, role: Role, name?: string, phone?: string) => Promise<User | null>;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user database
-const mockUsers: User[] = [
-  { id: '1', email: 'patient@medichain.com', role: 'patient' },
-  { id: '2', email: 'doctor@medichain.com', role: 'doctor' },
-  { id: '3', email: 'pharmacy@medichain.com', role: 'pharmacy' },
-];
-const mockPasswords: { [email: string]: string } = {
-  'patient@medichain.com': 'password',
-  'doctor@medichain.com': 'password',
-  'pharmacy@medichain.com': 'password',
-};
-
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
+  const { toast } = useToast();
+
   useEffect(() => {
-    // Simulate checking for a logged-in user
-    try {
-      const storedUser = sessionStorage.getItem('medichain-user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUser({ uid: firebaseUser.uid, email: firebaseUser.email, ...userDoc.data() } as User);
+        } else {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
       }
-    } catch (error) {
-      console.error("Could not parse user from session storage", error);
-    }
-    setLoading(false);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  const login = (email: string, password: string): User | null => {
-    const foundUser = mockUsers.find(u => u.email === email);
-    if (foundUser && mockPasswords[email] === password) {
-      setUser(foundUser);
-      sessionStorage.setItem('medichain-user', JSON.stringify(foundUser));
-      return foundUser;
+  const login = async (email: string, password: string): Promise<User | null> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      if (userDoc.exists()) {
+        const userData = { uid: userCredential.user.uid, email: userCredential.user.email, ...userDoc.data() } as User;
+        setUser(userData);
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+        return userData;
+      }
+      return null;
+    } catch (error: any) {
+      console.error("Error logging in:", error);
+      toast({
+        title: "Login Failed",
+        description: "Invalid credentials. Please check your email and password.",
+        variant: "destructive",
+      });
+      return null;
     }
-    return null;
   };
 
-  const signup = (email: string, password: string, role: Role): User | null => {
-    if (mockUsers.find(u => u.email === email)) {
-      return null; // User already exists
+  const signup = async (email: string, password: string, role: Role, name?: string, phone?: string): Promise<User | null> => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser: User = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        role,
+        name,
+        phone,
+      };
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        role,
+        email,
+        name: name || null,
+        phone: phone || null,
+      });
+      setUser(newUser);
+      toast({
+        title: "Signup Successful",
+        description: "Your account has been created.",
+      });
+      return newUser;
+    } catch (error: any) {
+      console.error("Error signing up:", error);
+      const description = error.code === 'auth/email-already-in-use' 
+        ? "This email is already in use." 
+        : "An error occurred during signup.";
+      toast({
+        title: "Signup Failed",
+        description,
+        variant: "destructive",
+      });
+      return null;
     }
-    const newUser: User = { id: String(mockUsers.length + 1), email, role };
-    mockUsers.push(newUser);
-    mockPasswords[email] = password;
-    return newUser;
   };
 
-  const logout = () => {
-    setUser(null);
-    sessionStorage.removeItem('medichain-user');
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast({
+        title: "Logout Failed",
+        description: "An error occurred during logout.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

@@ -17,7 +17,7 @@ import { Logo } from '@/components/logo';
 const signupSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  role: z.enum(['patient', 'doctor', 'pharmacy'], {
+  role: z.enum(['patient', 'doctor', 'pharmacy', 'hospital'], {
     required_error: 'You need to select a role.',
   }),
 });
@@ -109,6 +109,7 @@ export default function SignupPage() {
                         <SelectItem value="patient">Patient</SelectItem>
                         <SelectItem value="doctor">Doctor</SelectItem>
                         <SelectItem value="pharmacy">Pharmacy</SelectItem>
+                        <SelectItem value="hospital">Hospital</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

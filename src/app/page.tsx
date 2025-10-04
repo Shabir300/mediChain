@@ -43,6 +43,9 @@ export default function LoginPage() {
         case 'pharmacy':
           router.push('/pharmacy');
           break;
+        case 'hospital':
+            router.push('/hospital');
+            break;
         default:
           router.push('/');
       }
@@ -57,21 +60,8 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = (data: LoginFormValues) => {
-    const loggedInUser = login(data.email, data.password);
-    if (loggedInUser) {
-      toast({
-        title: 'Login Successful',
-        description: `Welcome back, ${loggedInUser.email}!`,
-      });
-      // The useEffect will handle redirection
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: 'Invalid email or password.',
-      });
-    }
+  const onSubmit = async (data: LoginFormValues) => {
+    await login(data.email, data.password);
   };
 
   if (!isClient || user) {
