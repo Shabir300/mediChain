@@ -40,6 +40,11 @@ next-env.d.ts
 .genkit/*
 .env*
 
+/google-credentials.json
+/google-credentials.json/
+google-credentials.json
+
+
 # firebase
 firebase-debug.log
 firestore-debug.log

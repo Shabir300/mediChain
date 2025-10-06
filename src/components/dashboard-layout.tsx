@@ -1,26 +1,42 @@
-"use client";
-
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+'use client';
+import { Logo } from '@/components/logo';
 import {
-  AlertTriangle,
-  Building,
-  ClipboardList,
+  Sidebar,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarFooter,
+} from '@/components/ui/sidebar';
+import {
+  Bell,
   Home,
-  LogOut,
-  Hospital,
-  User as UserIcon,
-  CalendarCheck,
+  LineChart,
   Package,
+  Package2,
   ShoppingCart,
-  History,
+  Users,
+  Calendar,
+  HeartPulse,
+  Stethoscope,
+  Pill,
+  FileText,
+  MessageSquare,
+  User,
 } from 'lucide-react';
-
-import { useAuth } from '@/context/auth-context';
-import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,191 +45,118 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
-import { Logo } from './logo';
-import { useToast } from '@/hooks/use-toast';
-import { SymptomCheckerSheet } from './patient/symptom-checker-sheet';
+import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { usePathname } from 'next/navigation';
+import { AuthProvider, useAuth } from '@/context/auth-context';
+import { AIChat } from '@/components/ai-chat/ai-chat'; // Import the AIChat component
 
-interface NavItem {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-}
-
-const patientNavItems: NavItem[] = [
-    { href: '/patient', icon: Home, label: 'Dashboard' },
-    { href: '/profile', icon: UserIcon, label: 'Profile' },
-    { href: '/patient/doctors', icon: UserIcon, label: 'Find a Doctor' },
-    { href: '/patient/appointments', icon: CalendarCheck, label: 'My Appointments' },
-    { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
-    { href: '/patient/orders', icon: ShoppingCart, label: 'Order Medicines' },
-    { href: '/patient/order-history', icon: History, label: 'Order History' },
-];
-  
-const doctorNavItems: NavItem[] = [
-    { href: '/doctor', icon: Home, label: 'Dashboard' },
-    { href: '/profile', icon: UserIcon, label: 'Profile' },
-    { href: '/doctor/appointments', icon: CalendarCheck, label: 'Appointments' },
-];
-  
-const pharmacyNavItems: NavItem[] = [
-    { href: '/pharmacy', icon: Home, label: 'Dashboard' },
-    { href: '/profile', icon: UserIcon, label: 'Store' },
-    { href: '/pharmacy/medicines', icon: Package, label: 'Medicines' },
-    { href: '/pharmacy/orders', icon: ShoppingCart, label: 'Orders' },
-];
-  
-const hospitalNavItems: NavItem[] = [
-    { href: '/hospital', icon: Home, label: 'Dashboard' },
-    { href: '/profile', icon: UserIcon, label: 'Profile' },
+const patientNavItems = [
+  { href: '/patient', icon: Home, label: 'Dashboard' },
+  { href: '/patient/doctors', icon: Stethoscope, label: 'Find a Doctor' },
+  { href: '/patient/appointments', icon: Calendar, label: 'My Appointments' },
+  { href: '/patient/orders', icon: ShoppingCart, label: 'My Orders' },
+  { href: '/patient/records', icon: FileText, label: 'Medical Records' },
+  { href: '/profile', icon: User, label: 'Profile' },
 ];
 
+const doctorNavItems = [
+  { href: '/doctor', icon: Home, label: 'Dashboard' },
+  { href: '/doctor/appointments', icon: Calendar, label: 'Appointments' },
+  { href: '/profile', icon: User, label: 'Profile' },
+];
 
-export function DashboardLayout({ children, requiredRole }: { children: React.ReactNode; requiredRole: 'patient' | 'doctor' | 'pharmacy' | 'hospital' }) {
-  const { user, logout, loading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-  const { toast } = useToast();
+const pharmacyNavItems = [
+  { href: '/pharmacy', icon: Home, label: 'Dashboard' },
+  { href: '/pharmacy/medicines', icon: Pill, label: 'Inventory' },
+  { href: '/pharmacy/orders', icon: ShoppingCart, label: 'Orders' },
+  { href: '/profile', icon: User, label: 'Profile' },
+];
 
-  useEffect(() => {
-    if (!loading && (!user || user.role !== requiredRole)) {
-      router.push('/');
-    }
-  }, [user, loading, router, requiredRole]);
-  
-  useEffect(() => {
-      if (user?.role === 'patient') {
-          const timer = setTimeout(() => {
-              toast({
-                  title: 'Medication Reminder',
-                  description: 'It\'s time to take your Paracetamol.',
-                  action: <Button variant="outline" size="sm">Dismiss</Button>
-              });
-          }, 15000); 
-          return () => clearTimeout(timer);
-      }
-  }, [user, toast]);
+const hospitalNavItems = [
+  { href: '/hospital', icon: Home, label: 'Dashboard' },
+  { href: '/profile', icon: User, label: 'Profile' },
+];
 
-  const handleLogout = () => {
-    logout();
-    toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
-    router.push('/');
-  };
-  
-  const handleSOS = () => {
-      toast({
-          variant: 'destructive',
-          title: 'SOS Signal Sent',
-          description: 'Emergency request sent to nearby hospital.',
-      });
-  };
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Logo />
-      </div>
-    );
+const getNavItems = (role: string) => {
+  switch (role) {
+    case 'patient':
+      return patientNavItems;
+    case 'doctor':
+      return doctorNavItems;
+    case 'pharmacy':
+      return pharmacyNavItems;
+    case 'hospital':
+      return hospitalNavItems;
+    default:
+      return [];
   }
+};
 
-  const getNavItems = () => {
-    switch (user.role) {
-      case 'patient': return patientNavItems;
-      case 'doctor': return doctorNavItems;
-      case 'pharmacy': return pharmacyNavItems;
-      case 'hospital': return hospitalNavItems;
-      default: return [];
-    }
-  };
-
-  const getRoleIcon = () => {
-      switch (user.role) {
-          case 'patient': return <UserIcon className="h-5 w-5 text-muted-foreground" />;
-          case 'doctor': return <UserIcon className="h-5 w-5 text-muted-foreground" />;
-          case 'pharmacy': return <Building className="h-5 w-5 text-muted-foreground" />;
-          case 'hospital': return <Hospital className="h-5 w-5 text-muted-foreground" />;
-      }
-  };
+export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const navItems = getNavItems(user?.role || '');
+  const pathname = usePathname();
 
   return (
     <SidebarProvider>
-      <Sidebar side="left" collapsible="icon">
-        <SidebarHeader>
-          <div className="flex w-full items-center justify-between p-2">
-            <Link href="/" className="shrink-0">
-               <Logo />
-            </Link>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {getNavItems().map((item) => (
-              <SidebarMenuItem key={item.label}>
-                <Link href={item.href} passHref>
-                  <SidebarMenuButton
-                    tooltip={{ children: item.label }}
-                    isActive={pathname === item.href}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
+      <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <Sidebar>
+          <SidebarContent>
+            <SidebarHeader>
+              <Logo />
+            </SidebarHeader>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton asChild isActive={pathname === item.href}>
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
                   </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6">
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+        <div className="flex flex-col">
+          <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
             <SidebarTrigger className="md:hidden" />
-          <div className="flex w-full items-center justify-end gap-4">
-            {user.role === 'patient' && (
-                 <Button variant="destructive" size="sm" onClick={handleSOS}>
-                    <AlertTriangle className="mr-2 h-4 w-4" /> SOS
-                 </Button>
-            )}
+            <div className="w-full flex-1">
+              <h1 className="text-lg font-semibold">Dashboard</h1>
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>{user.email.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-full"
+                >
+                  <img
+                    src={user?.photoURL || '/placeholder-user.jpg'}
+                    alt="user avatar"
+                    className="h-8 w-8 rounded-full"
+                  />
+                  <span className="sr-only">Toggle user menu</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex items-center gap-2">
-                    {getRoleIcon()}
-                    <p className="text-sm font-medium leading-none">{user.role}</p>
-                  </div>
-                  <p className="text-xs leading-none text-muted-foreground mt-1">
-                    {user.email}
-                  </p>
-                </DropdownMenuLabel>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
+                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuItem>Support</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        </header>
-        <main className="relative flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          </header>
+          <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             {children}
-            {user.role === 'patient' && <SymptomCheckerSheet />}
-        </main>
-      </SidebarInset>
+          </main>
+          <AIChat />
+        </div>
+      </div>
     </SidebarProvider>
   );
 }
