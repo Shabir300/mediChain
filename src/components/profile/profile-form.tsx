@@ -20,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { match } from 'ts-pattern';
+import { Autocomplete, GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
 
 // Schemas
 const baseSchema = z.object({
@@ -48,16 +49,27 @@ const doctorSchema = baseSchema.extend({
     consultationFee: z.coerce.number().optional(),
     availableOnline: z.boolean().optional(),
     bio: z.string().optional(),
+    location: z.object({
+        lat: z.number(),
+        lng: z.number(),
+        address: z.string().min(1, "Address is required"),
+    }).optional(),
   }),
 });
 
 const pharmacySchema = baseSchema.extend({
   pharmacyData: z.object({
-    pharmacyName: z.string().optional(),
-    licenseNumber: z.string().optional(),
-    address: z.string().optional(),
-    operatingHours: z.string().optional(),
-    contactNumber: z.string().optional(),
+    pharmacyName: z.string().min(1, "Pharmacy name is required"),
+    licenseNumber: z.string().min(5, "License number must be at least 5 characters"),
+    address: z.string().min(1, "Address is required"),
+    operatingHours: z.string().min(1, "Operating hours are required"),
+    contactNumber: z.string().min(1, "Contact number is required"),
+    profileImage: z.any().optional(),
+    location: z.object({
+        lat: z.number(),
+        lng: z.number(),
+        address: z.string(),
+    }).optional(),
   }),
 });
 
@@ -122,9 +134,12 @@ export function ProfileForm() {
         imageUrl = await uploadProfileImage(user!.uid, profileImageFile);
       }
       
+      const { profileImage, ...restOfData } = data;
       const roleDataKey = `${user!.role}Data`;
+      
       const updatedData = {
-          ...data,
+          ...user,
+          ...restOfData,
           [roleDataKey]: {
               ...(user as any)[roleDataKey],
               ...data[roleDataKey],
@@ -133,7 +148,7 @@ export function ProfileForm() {
       };
 
       await updateUser(user!.uid, updatedData);
-      setUser(updatedData);
+      setUser(updatedData as User);
       toast({ title: 'Profile Updated', description: 'Your profile has been successfully updated.' });
     } catch (error) {
       console.error(error);
@@ -146,21 +161,28 @@ export function ProfileForm() {
   if (!user) return null;
 
   return (
+    <LoadScript
+        googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+        libraries={["places"]}
+    >
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Picture</CardTitle>
-            <CardDescription>Upload a picture to personalize your profile.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center gap-4">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={previewUrl || undefined} />
-              <AvatarFallback>{user.name?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <Input type="file" onChange={handleFileChange} />
-          </CardContent>
-        </Card>
+        
+        {user.role !== 'pharmacy' && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Profile Picture</CardTitle>
+                    <CardDescription>Upload a picture to personalize your profile.</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-center gap-4">
+                    <Avatar className="h-24 w-24">
+                    <AvatarImage src={previewUrl || undefined} />
+                    <AvatarFallback>{user.name?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <Input type="file" onChange={handleFileChange} />
+                </CardContent>
+            </Card>
+        )}
 
         <Card>
           <CardHeader>
@@ -208,7 +230,7 @@ export function ProfileForm() {
                 <DoctorForm form={form} />
             ))
             .with({ role: 'pharmacy' }, (pharmacy) => (
-                <PharmacyForm form={form} />
+                <PharmacyForm form={form} handleFileChange={handleFileChange} previewUrl={previewUrl} />
             ))
             .with({ role: 'hospital' }, (hospital) => (
                 <HospitalForm form={form} />
@@ -222,6 +244,7 @@ export function ProfileForm() {
         </Button>
       </form>
     </Form>
+    </LoadScript>
   );
 }
 
@@ -243,6 +266,7 @@ const PatientForm = ({ form }: { form: any }) => (
 );
 
 const DoctorForm = ({ form }: { form: any }) => (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Doctor Details</CardTitle>
@@ -257,9 +281,22 @@ const DoctorForm = ({ form }: { form: any }) => (
         <FormField control={form.control} name="doctorData.bio" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Bio</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
       </CardContent>
     </Card>
+    <LocationForm form={form} role="doctor" />
+    </>
   );
   
-  const PharmacyForm = ({ form }: { form: any }) => (
+  const PharmacyForm = ({ form, handleFileChange, previewUrl }: { form: any, handleFileChange: any, previewUrl: string | null }) => (
+    <>
+    <Card>
+        <CardHeader><CardTitle>Store Image</CardTitle></CardHeader>
+        <CardContent className="flex items-center gap-4">
+            <Avatar className="h-24 w-24">
+                <AvatarImage src={previewUrl || undefined} />
+                <AvatarFallback>Store</AvatarFallback>
+            </Avatar>
+            <Input type="file" onChange={handleFileChange} />
+        </CardContent>
+    </Card>
     <Card>
       <CardHeader>
         <CardTitle>Pharmacy Details</CardTitle>
@@ -267,11 +304,12 @@ const DoctorForm = ({ form }: { form: any }) => (
       <CardContent className="grid gap-4 md:grid-cols-2">
         <FormField control={form.control} name="pharmacyData.pharmacyName" render={({ field }) => (<FormItem><FormLabel>Pharmacy Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="pharmacyData.licenseNumber" render={({ field }) => (<FormItem><FormLabel>License Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-        <FormField control={form.control} name="pharmacyData.address" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>Address</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="pharmacyData.operatingHours" render={({ field }) => (<FormItem><FormLabel>Operating Hours</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
         <FormField control={form.control} name="pharmacyData.contactNumber" render={({ field }) => (<FormItem><FormLabel>Contact Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
       </CardContent>
     </Card>
+    <LocationForm form={form} role="pharmacy" />
+    </>
   );
   
   const HospitalForm = ({ form }: { form: any }) => (
@@ -292,3 +330,64 @@ const DoctorForm = ({ form }: { form: any }) => (
       </CardContent>
     </Card>
   );
+
+  const LocationForm = ({ form, role }: { form: any; role: 'doctor' | 'pharmacy' }) => {
+    const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+    const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  
+    const onLoad = (autocomplete: google.maps.places.Autocomplete) => {
+      setAutocomplete(autocomplete);
+    };
+  
+    const onPlaceChanged = () => {
+      if (autocomplete !== null) {
+        const place = autocomplete.getPlace();
+        if (place.geometry && place.geometry.location) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          setCoordinates({ lat, lng });
+          form.setValue(`${role}Data.location`, { lat, lng, address: place.formatted_address });
+          form.setValue(`${role}Data.address`, place.formatted_address);
+        }
+      }
+    };
+  
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Location & Address</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+            <Autocomplete
+              onLoad={onLoad}
+              onPlaceChanged={onPlaceChanged}
+            >
+              <FormField
+                control={form.control}
+                name={`${role}Data.address`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Complete Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Start typing your address..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </Autocomplete>
+            {coordinates && (
+                <div className="h-64 w-full mt-4 rounded-md overflow-hidden">
+                    <GoogleMap
+                        mapContainerStyle={{ height: "100%", width: "100%" }}
+                        center={coordinates}
+                        zoom={15}
+                    >
+                        <Marker position={coordinates} />
+                    </GoogleMap>
+                </div>
+            )}
+        </CardContent>
+      </Card>
+    );
+  };

@@ -1,19 +1,28 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -21,7 +30,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../ui/form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -29,22 +38,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { File, Upload, Download, Trash2, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-
+import { useToast } from '@/hooks/use-toast';
+import {
+  FileText,
+  UploadCloud,
+  X,
+  Trash2,
+  Download,
+  Eye,
+  Loader2,
+} from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { storage, db } from '@/config/firebase';
 import {
@@ -65,6 +70,7 @@ import {
   doc,
   deleteDoc,
 } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
 
 // --- Zod Schema for Form Validation ---
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -77,10 +83,10 @@ const recordCategories = [
   'Other',
 ] as const;
 
-const recordSchema = z.object({
+const uploadRecordSchema = z.object({
   file: z
     .any()
-    .refine((files) => files?.length == 1, 'File is required.')
+    .refine((files) => files?.length === 1, 'File is required.')
     .refine(
       (files) => files?.[0]?.size <= MAX_FILE_SIZE,
       `Max file size is 10MB.`
@@ -89,108 +95,99 @@ const recordSchema = z.object({
       (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
       'Only .pdf files are accepted.'
     ),
-  category: z.enum(recordCategories),
+  category: z.enum(recordCategories, {
+    required_error: 'Please select a category.',
+  }),
 });
 
-type RecordFormValues = z.infer<typeof recordSchema>;
-
-// --- TypeScript Type for Firestore Document ---
-export interface MedicalRecord {
+// --- Type Definition ---
+interface MedicalRecord {
   id: string;
   patientId: string;
   fileName: string;
   fileUrl: string;
   fileType: string;
   fileSize: number;
-  uploadedAt: Timestamp;
   category: typeof recordCategories[number];
+  uploadedAt: Timestamp;
 }
 
-// --- Helper Function to Format Bytes ---
-function formatBytes(bytes: number, decimals = 2) {
+// --- Helper Functions ---
+const formatFileSize = (bytes: number) => {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-}
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 
-export function MedicalRecords() {
-  const { toast } = useToast();
+const formatDate = (timestamp: Timestamp) => {
+  return timestamp.toDate().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+// --- Main Component ---
+export const MedicalRecords = () => {
   const { user } = useAuth();
-  const [uploadedFiles, setUploadedFiles] = useState<MedicalRecord[]>([]);
-  const [isFetching, setIsFetching] = useState(true);
+  const { toast } = useToast();
+  const [records, setRecords] = useState<MedicalRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState<string | null>(null); // Store ID of file being deleted
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const form = useForm<RecordFormValues>({
-    resolver: zodResolver(recordSchema),
-    defaultValues: {
-      category: 'Prescription',
-    },
+  const form = useForm<z.infer<typeof uploadRecordSchema>>({
+    resolver: zodResolver(uploadRecordSchema),
   });
 
-  // --- Data Fetching Effect ---
-  useEffect(() => {
-    const fetchRecords = async () => {
-      if (!user) {
-        setIsFetching(false);
-        return;
-      }
-      try {
-        const recordsCol = collection(db, 'medical_records');
-        const q = query(
-          recordsCol,
-          where('patientId', '==', user.uid),
-          orderBy('uploadedAt', 'desc')
-        );
-        const querySnapshot = await getDocs(q);
-        const records = querySnapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              ...doc.data(),
-            } as MedicalRecord)
-        );
-        setUploadedFiles(records);
-      } catch (error) {
-        console.error('Error fetching medical records:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch medical records.',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsFetching(false);
-      }
-    };
+  // --- Data Fetching ---
+  const fetchRecords = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const q = query(
+        collection(db, 'medical_records'),
+        where('patientId', '==', user.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      const fetchedRecords = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as MedicalRecord[];
+      
+      fetchedRecords.sort((a, b) => b.uploadedAt.toMillis() - a.uploadedAt.toMillis());
 
-    fetchRecords();
+      setRecords(fetchedRecords);
+    } catch (error) {
+      console.error('Error fetching medical records:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to fetch medical records.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }, [user, toast]);
 
-  // --- File Upload and Firestore Write ---
-  const onSubmit = async (data: RecordFormValues) => {
-    // if (!user) {
-    //   toast({
-    //     title: 'Authentication Error',
-    //     description: 'You must be logged in to upload files.',
-    //     variant: 'destructive',
-    //   });
-    //   return;
-    // }
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
 
-    const file = data.file[0] as File;
+  // --- File Upload ---
+  const onSubmit = async (data: z.infer<typeof uploadRecordSchema>) => {
+    if (!user) return;
+    const file = data.file[0];
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      // 1. Upload to Firebase Storage
-      const uniqueFileName = `${Date.now()}_${file.name}`;
       const storageRef = ref(
         storage,
-        `medical_records/${user.uid}/${uniqueFileName}`
+        `medical_records/${user.uid}/${Date.now()}_${file.name}`
       );
       const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -200,19 +197,15 @@ export function MedicalRecords() {
           const progress =
             (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           setUploadProgress(progress);
-        },
-        (error) => {
-          throw error; // Rethrow to be caught by the outer catch block
         }
       );
 
       await uploadTask;
       const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-      // 2. Save Metadata to Firestore
       const recordData = {
         patientId: user.uid,
-        fileName: file.name, // Store original file name
+        fileName: file.name,
         fileUrl: downloadURL,
         fileType: file.type,
         fileSize: file.size,
@@ -222,214 +215,222 @@ export function MedicalRecords() {
 
       const docRef = await addDoc(collection(db, 'medical_records'), recordData);
 
-      // 3. Update Local State
-      const newRecord: MedicalRecord = {
-        id: docRef.id,
-        ...recordData,
-        uploadedAt: Timestamp.now(), // Approximate for immediate UI update
-      };
-      setUploadedFiles((prev) => [newRecord, ...prev]);
+      setRecords((prev) => [
+        { ...recordData, id: docRef.id, uploadedAt: new Timestamp(Date.now() / 1000, 0) },
+        ...prev,
+      ]);
 
       toast({
-        title: 'Upload Successful',
-        description: `${file.name} has been added to your records.`,
+        title: 'Success',
+        description: 'Your medical record has been uploaded.',
       });
       form.reset();
-    } catch (error) {
-      console.error('File upload error:', error);
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      console.error('Upload failed:', error);
       toast({
-        title: 'Upload Failed',
-        description: 'An error occurred while uploading your file. Please try again.',
         variant: 'destructive',
+        title: 'Upload Failed',
+        description:
+          error.code || 'An unexpected error occurred. Please try again.',
       });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
     }
   };
-  
-    // --- File Deletion ---
+
+  // --- File Deletion ---
   const handleDelete = async (record: MedicalRecord) => {
     if (!user) return;
-    setIsDeleting(record.id);
-
     try {
-      // 1. Delete from Firebase Storage
-      const uniqueFileName = record.fileUrl.split('%2F').pop()?.split('?')[0] || record.fileName;
-      const storageRef = ref(storage, `medical_records/${user.uid}/${uniqueFileName}`);
-      await deleteObject(storageRef);
-
-      // 2. Delete from Firestore
+      const fileRef = ref(storage, record.fileUrl);
+      await deleteObject(fileRef);
+  
       await deleteDoc(doc(db, 'medical_records', record.id));
-
-      // 3. Update Local State
-      setUploadedFiles((prev) => prev.filter((file) => file.id !== record.id));
-
+  
+      setRecords((prev) => prev.filter((r) => r.id !== record.id));
       toast({
         title: 'Record Deleted',
-        description: `${record.fileName} has been removed.`,
+        description: `${record.fileName} has been successfully deleted.`,
       });
     } catch (error) {
       console.error('Error deleting record:', error);
       toast({
-        title: 'Deletion Failed',
-        description: 'Could not delete the record. Please try again.',
         variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete the record. Please try again.',
       });
-    } finally {
-      setIsDeleting(null);
     }
   };
 
   return (
-    <div className="grid gap-8 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">Upload Medical Record</CardTitle>
-          <CardDescription>
-            Upload a PDF (max 10MB) of your medical history or recent test
-            results.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="file"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PDF File</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => field.onChange(e.target.files)}
-                        disabled={isUploading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isUploading}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {recordCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {isUploading && (
-                <Progress value={uploadProgress} className="w-full" />
-              )}
-
-              <Button type="submit" className="w-full" disabled={isUploading}>
-                {isUploading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" /> Upload Record
-                  </>
-                )}
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Medical Records</CardTitle>
+            <CardDescription>
+              Manage and upload your medical documents securely.
+            </CardDescription>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UploadCloud className="mr-2 h-4 w-4" /> Upload Record
               </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">Uploaded Files</CardTitle>
-          <CardDescription>Your complete medical record history.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isFetching ? (
-            <div className="space-y-3">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          ) : uploadedFiles.length > 0 ? (
-            <ul className="space-y-2">
-              {uploadedFiles.map((file) => (
-                <li
-                  key={file.id}
-                  className="flex items-center justify-between text-sm p-3 bg-muted/50 rounded-md"
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload a New Medical Record</DialogTitle>
+                <DialogDescription>
+                  Select a PDF file and a category for your document.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-4"
                 >
-                  <div className="flex items-center overflow-hidden">
-                    <File className="h-5 w-5 mr-3 text-muted-foreground flex-shrink-0" />
-                    <div className="truncate">
-                      <p className="font-medium truncate" title={file.fileName}>{file.fileName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatBytes(file.fileSize)} |{' '}
-                        {file.uploadedAt.toDate().toLocaleDateString()}
+                  <FormField
+                    control={form.control}
+                    name="file"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Document (PDF only, max 10MB)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={(e) => field.onChange(e.target.files)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {recordCategories.map((cat) => (
+                              <SelectItem key={cat} value={cat}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {isUploading && (
+                    <div className="space-y-1">
+                      <p className="text-sm">
+                        Uploading... {uploadProgress.toFixed(0)}%
                       </p>
+                      <Progress value={uploadProgress} />
                     </div>
-                  </div>
-                  <div className='flex items-center flex-shrink-0 ml-2'>
-                    <Badge variant="secondary" className='hidden sm:inline-block'>{file.category}</Badge>
-                    <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
+                  )}
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline" type="button">
+                        Cancel
                       </Button>
-                    </a>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" disabled={isDeleting === file.id}>
-                           {isDeleting === file.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete "{file.fileName}" from storage and your records.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(file)}>
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-center text-muted-foreground py-8">
-              No files uploaded yet.
+                    </DialogClose>
+                    <Button type="submit" disabled={isUploading}>
+                      {isUploading && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Upload
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+               <div key={i} className="flex items-center justify-between p-4 border rounded-lg animate-pulse">
+                <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 bg-gray-200 rounded-md"></div>
+                    <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-48"></div>
+                        <div className="h-3 bg-gray-200 rounded w-32"></div>
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <div className="h-8 w-16 bg-gray-200 rounded-md"></div>
+                    <div className="h-8 w-16 bg-gray-200 rounded-md"></div>
+                </div>
+               </div>
+            ))}
+           </div>
+        ) : records.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              No medical records
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Get started by uploading your first document.
             </p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {records.map((record) => (
+              <div
+                key={record.id}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
+                <div className="flex items-center gap-4">
+                  <FileText className="h-10 w-10 text-primary" />
+                  <div>
+                    <p className="font-semibold">{record.fileName}</p>
+                    <p className="text-sm text-gray-500">
+                      {record.category} • Uploaded on {formatDate(record.uploadedAt)} •{' '}
+                      {formatFileSize(record.fileSize)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                    <a
+                        href={record.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+                    >
+                        <Eye className="mr-2 h-4 w-4" /> View
+                    </a>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(record)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};

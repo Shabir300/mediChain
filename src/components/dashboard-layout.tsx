@@ -11,6 +11,10 @@ import {
   LogOut,
   Hospital,
   User as UserIcon,
+  CalendarCheck,
+  Package,
+  ShoppingCart,
+  History,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/auth-context';
@@ -50,18 +54,23 @@ const patientNavItems: NavItem[] = [
     { href: '/patient', icon: Home, label: 'Dashboard' },
     { href: '/profile', icon: UserIcon, label: 'Profile' },
     { href: '/patient/doctors', icon: UserIcon, label: 'Find a Doctor' },
+    { href: '/patient/appointments', icon: CalendarCheck, label: 'My Appointments' },
     { href: '/patient/records', icon: ClipboardList, label: 'Medical Records' },
-    { href: '/patient/orders', icon: Building, label: 'Pharmacy Orders' },
+    { href: '/patient/orders', icon: ShoppingCart, label: 'Order Medicines' },
+    { href: '/patient/order-history', icon: History, label: 'Order History' },
 ];
   
 const doctorNavItems: NavItem[] = [
     { href: '/doctor', icon: Home, label: 'Dashboard' },
     { href: '/profile', icon: UserIcon, label: 'Profile' },
+    { href: '/doctor/appointments', icon: CalendarCheck, label: 'Appointments' },
 ];
   
 const pharmacyNavItems: NavItem[] = [
     { href: '/pharmacy', icon: Home, label: 'Dashboard' },
-    { href: '/profile', icon: UserIcon, label: 'Profile' },
+    { href: '/profile', icon: UserIcon, label: 'Store' },
+    { href: '/pharmacy/medicines', icon: Package, label: 'Medicines' },
+    { href: '/pharmacy/orders', icon: ShoppingCart, label: 'Orders' },
 ];
   
 const hospitalNavItems: NavItem[] = [

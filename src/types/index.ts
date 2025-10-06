@@ -1,8 +1,13 @@
-
 import { Timestamp } from 'firebase/firestore';
 
-// Base types
-export type Role = 'patient' | 'doctor' | 'pharmacy' | 'hospital';
+// Base user data
+interface UserBase {
+  uid: string;
+  email: string;
+  name: string;
+  phone?: string;
+  profileImage?: string;
+}
 
 // Role-specific data structures
 export interface PatientData {
@@ -11,8 +16,6 @@ export interface PatientData {
   allergies?: string[];
   emergencyContact?: string;
   address?: string;
-  location?: { lat: number; lng: number };
-  profileImage?: string;
 }
 
 export interface DoctorData {
@@ -22,96 +25,126 @@ export interface DoctorData {
   hospitalAffiliation?: string;
   consultationFee?: number;
   availableOnline?: boolean;
-  location?: { lat: number; lng: number; address: string };
-  ratings?: { average: number; count: number };
-  earnings?: number;
-  profileImage?: string;
   bio?: string;
+  location?: {
+    lat: number;
+    lng: number;
+    address: string;
+  };
+  ratings?: {
+    average: number;
+    count: number;
+  };
+  reviews?: any[];
 }
 
 export interface PharmacyData {
-  pharmacyName?: string;
-  licenseNumber?: string;
-  address?: string;
-  location?: { lat: number; lng: number };
-  operatingHours?: string;
-  contactNumber?: string;
-  profileImage?: string;
+    pharmacyName?: string;
+    licenseNumber?: string;
+    address?: string;
+    operatingHours?: string;
+    contactNumber?: string;
+    profileImage?: string;
+    location?: {
+        lat: number;
+        lng: number;
+        address: string;
+    };
 }
 
 export interface HospitalData {
   hospitalName?: string;
   licenseNumber?: string;
   address?: string;
-  location?: { lat: number; lng: number };
   emergencyContact?: string;
   ambulanceCount?: number;
   facilities?: string[];
   availableBeds?: number;
   operatingHours?: string;
   website?: string;
-  profileImage?: string;
 }
 
-// Base User Interface
-interface BaseUser {
-  uid: string;
-  email: string;
-  name?: string;
-  phone?: string;
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
-}
-
-// Discriminated Union for User Type
-export type User = BaseUser & (
+// Discriminated union for User
+export type User = UserBase & (
   | { role: 'patient'; patientData?: PatientData }
   | { role: 'doctor'; doctorData?: DoctorData }
   | { role: 'pharmacy'; pharmacyData?: PharmacyData }
   | { role: 'hospital'; hospitalData?: HospitalData }
 );
 
+export interface PharmacyOrder {
+    pharmacyId: string;
+    pharmacyName: string;
+    status: 'pending' | 'approved' | 'declined' | 'delivered';
+}
 
-// Other existing types
 export interface Appointment {
   id?: string;
   patientId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  gender: 'male' | 'female' | 'other';
+  age: number;
+  notes?: string;
   doctorId: string;
-  appointmentDate: Timestamp;
-  reason: string;
-  status: 'scheduled' | 'completed' | 'canceled';
+  doctorName: string;
+  doctorSpecialization?: string;
+  appointmentType: 'urgent' | 'normal';
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  date: Date;
+  timeSlot: string;
+  location: {
+    address: string;
+    lat: number;
+    lng: number;
+  };
+  consultationFee: number;
+  meetingLink?: string;
+  createdAt: Timestamp;
+  consultationNotes?: any;
+  prescriptionUploaded?: boolean;
 }
 
 export interface MedicalRecord {
-  id?: string;
+  id: string;
   patientId: string;
   fileName: string;
-  downloadURL: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  category: string;
   uploadedAt: Timestamp;
 }
 
 export interface Medicine {
-  id?: string;
-  name: string;
-  quantity: number;
-  price: number;
-  pharmacyId: string;
+    id: string;
+    pharmacyId: string;
+    name: string;
+    genericName: string;
+    brand: string;
+    category: string;
+    form: string;
+    price: number;
+    stock: number;
+    lowStockThreshold: number;
+    expiryDate: Timestamp;
+    description: string;
+    imageUrl?: string; 
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
 }
 
 export interface Order {
-  id?: string;
+  id: string;
   patientId: string;
-  pharmacyId: string;
-  items: { medicineId: string; quantity: number }[];
-  totalPrice: number;
+  patientName: string;
+  patientEmail: string;
+  pharmacyIds: string[];
+  pharmacies: PharmacyOrder[];
+  items: any[];
+  totalAmount: number;
+  deliveryAddress: string;
   orderDate: Timestamp;
-  status: 'pending' | 'completed' | 'canceled';
-}
-
-export interface Notification {
-  id?: string;
-  userId: string;
-  message: string;
-  isRead: boolean;
   createdAt: Timestamp;
 }
